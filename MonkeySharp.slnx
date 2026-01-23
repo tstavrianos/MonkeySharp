@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/solution files/">
+    <File Path=".gitignore" />
+    <File Path="LICENSE" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="MonkeySharp.Cli/MonkeySharp.Cli.csproj" />
+  <Project Path="MonkeySharp.Core/MonkeySharp.Core.csproj" />
+  <Project Path="MonkeySharp.Tests/MonkeySharp.Tests.csproj" />
+</Solution>
