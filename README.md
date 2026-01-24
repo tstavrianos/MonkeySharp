@@ -17,9 +17,11 @@ of language design and implementation.
 
 ## Next Steps
 
-- Review the code. I sped through the books and some bits might have more elegant implementations in C# compared to Go
-- Write an AST optimizer
-- Extend the built-in functions
-- Make the language more easily embeddable in C# applications
-- Go through the tests again and check if I missed any (the tests are from an earlier attempt at this project and might
+- [ ] Review the code. I sped through the books and some bits might have more elegant implementations in C# compared to
+  Go
+- [x] Write an AST optimizer
+- [ ] Extend the built-in functions
+- [ ] Make the language more easily embeddable in C# applications
+- [ ] Go through the tests again and check if I missed any (the tests are from an earlier attempt at this project and
+  might
   not be 1-1 with the books)

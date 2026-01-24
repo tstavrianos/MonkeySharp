@@ -1,4 +1,5 @@
 ﻿using MonkeySharp.Core.Ast.Expressions;
+using MonkeySharp.Core.Ast.Visitors;
 
 namespace MonkeySharp.Core.Ast.Statements
 {
@@ -10,6 +11,16 @@ namespace MonkeySharp.Core.Ast.Statements
         public override string ToString()
         {
             return $"{TokenLiteral} {Name} = {(Value != null ? Value.ToString() : string.Empty)};";
+        }
+
+        public override void Accept(IStatementVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
+
+        public override T Accept<T>(IStatementVisitor<T> visitor)
+        {
+            return visitor.Visit(this);
         }
     }
 }

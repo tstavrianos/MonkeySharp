@@ -1,5 +1,4 @@
-﻿using System;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
 using MonkeySharp.Core;
 using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Interpreter;
@@ -28,7 +27,9 @@ let fibonacci = fn(x) {
 fibonacci(20);";
 
         private ProgramNode _program;
+        private ProgramNode _programOptimized;
         private ByteCode _byteCode;
+        private ByteCode _byteCodeOptimized;
 
         [GlobalSetup]
         public void GlobalSetup()
@@ -36,9 +37,15 @@ fibonacci(20);";
             var lexer = new Lexer(Input);
             var parser = new Parser(lexer);
             _program = parser.ParseProgram();
+            var optimizer = new Optimizer();
+            _programOptimized = optimizer.Optimize(_program);
             var compiler = new Compiler();
             compiler.Compile(_program);
             _byteCode = compiler.ByteCode();
+
+            var compilerOptimized = new Compiler();
+            compilerOptimized.Compile(_programOptimized);
+            _byteCodeOptimized = compilerOptimized.ByteCode();
         }
 
         [Benchmark]
@@ -46,7 +53,6 @@ fibonacci(20);";
         {
             var evaluator = new Evaluator();
             var result = evaluator.Eval(_program, new Environment());
-            //Console.WriteLine(result.Inspect);
         }
 
         [Benchmark]
@@ -55,7 +61,21 @@ fibonacci(20);";
             var vm = new Vm(_byteCode);
             vm.Run();
             var result = vm.LastPoppedStackElement;
-            //Console.WriteLine(result.Inspect);
+        }
+
+        [Benchmark]
+        public void BenchmarkInterpreterOptimized()
+        {
+            var evaluator = new Evaluator();
+            var result = evaluator.Eval(_programOptimized, new Environment());
+        }
+
+        [Benchmark]
+        public void ScenarioVirtualMachineOptimized()
+        {
+            var vm = new Vm(_byteCodeOptimized);
+            vm.Run();
+            var result = vm.LastPoppedStackElement;
         }
     }
 }

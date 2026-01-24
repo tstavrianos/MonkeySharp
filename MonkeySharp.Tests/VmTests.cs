@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Objects;
 using MonkeySharp.Core.VirtualMachine;
 using NUnit.Framework;
@@ -211,6 +212,14 @@ namespace MonkeySharp.Tests
             if (program == null)
             {
                 Assert.Fail("ParseProgram() returned nil");
+                return;
+            }
+
+            var optimizer = new Optimizer();
+            program = optimizer.Optimize(program);
+            if (program == null)
+            {
+                Assert.Fail("optimizer.Optimize returned nil");
                 return;
             }
 

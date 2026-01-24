@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using MonkeySharp.Core.Ast.Visitors;
 
 namespace MonkeySharp.Core.Ast.Statements
 {
@@ -12,6 +13,16 @@ namespace MonkeySharp.Core.Ast.Statements
             var ret = new StringBuilder();
             foreach (var statement in Statements) ret.Append(statement.ToString());
             return ret.ToString();
+        }
+
+        public override void Accept(IStatementVisitor visitor)
+        {
+            visitor.Visit(this);
+        }
+
+        public override T Accept<T>(IStatementVisitor<T> visitor)
+        {
+            return visitor.Visit(this);
         }
     }
 }
