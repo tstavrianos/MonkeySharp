@@ -20,7 +20,7 @@ namespace MonkeySharp.Tests
                     new(TokenType.RightBrace, "}"),
                     new(TokenType.Comma, ","),
                     new(TokenType.Semicolon, ";"),
-                    new(TokenType.Eof, "")
+                    new(TokenType.EndOfFile, "")
                 }
             },
             new object[]
@@ -69,7 +69,7 @@ let result = add(five, ten);",
                     new(TokenType.Identifier, "ten"),
                     new(TokenType.RightParen, ")"),
                     new(TokenType.Semicolon, ";"),
-                    new(TokenType.Eof, "")
+                    new(TokenType.EndOfFile, "")
                 }
             },
             new object[]
@@ -90,7 +90,7 @@ let result = add(five, ten);",
                     new(TokenType.GreaterThan, ">"),
                     new(TokenType.Integer, "5"),
                     new(TokenType.Semicolon, ";"),
-                    new(TokenType.Eof, "")
+                    new(TokenType.EndOfFile, "")
                 }
             },
             new object[]
@@ -115,7 +115,7 @@ let result = add(five, ten);",
                     new(TokenType.False, "false"),
                     new(TokenType.Semicolon, ";"),
                     new(TokenType.RightBrace, "}"),
-                    new(TokenType.Eof, "")
+                    new(TokenType.EndOfFile, "")
                 }
             },
             new object[]
@@ -130,7 +130,42 @@ let result = add(five, ten);",
                     new(TokenType.Integer, "10"),
                     new(TokenType.NotEqual, "!="),
                     new(TokenType.Integer, "9"),
-                    new(TokenType.Semicolon, ";")
+                    new(TokenType.Semicolon, ";"),
+                    new(TokenType.EndOfFile, "")
+                }
+            },
+            new object[]
+            {
+                "\"foobar\"\"foo bar\"",
+                new (TokenType, string)[]
+                {
+                    new(TokenType.String, "foobar"),
+                    new(TokenType.String, "foo bar"),
+                    new(TokenType.EndOfFile, "")
+                }
+            },
+            new object[]
+            {
+                "[1, 2]", new (TokenType, string)[]
+                {
+                    new(TokenType.LeftBracket, "["),
+                    new(TokenType.Integer, "1"),
+                    new(TokenType.Comma, ","),
+                    new(TokenType.Integer, "2"),
+                    new(TokenType.RightBracket, "]"),
+                    new(TokenType.EndOfFile, "")
+                }
+            },
+            new object[]
+            {
+                "{\"foo\": \"bar\"}", new (TokenType, string)[]
+                {
+                    new(TokenType.LeftBrace, "{"),
+                    new(TokenType.String, "foo"),
+                    new(TokenType.Colon, ":"),
+                    new(TokenType.String, "bar"),
+                    new(TokenType.RightBrace, "}"),
+                    new(TokenType.EndOfFile, "")
                 }
             }
         ];

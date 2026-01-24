@@ -104,8 +104,20 @@ namespace MonkeySharp.Core
                 case '}':
                     tok = NewToken(TokenType.RightBrace, _ch);
                     break;
+                case '[':
+                    tok = NewToken(TokenType.LeftBracket, _ch);
+                    break;
+                case ']':
+                    tok = NewToken(TokenType.RightBracket, _ch);
+                    break;
+                case ':':
+                    tok = NewToken(TokenType.Colon, _ch);
+                    break;
+                case '"':
+                    tok = new Token(TokenType.String, ReadString());
+                    break;
                 case '\0':
-                    tok = new Token(TokenType.Eof, "");
+                    tok = new Token(TokenType.EndOfFile, "");
                     break;
                 default:
                     if (IsLetter(_ch))
@@ -166,6 +178,18 @@ namespace MonkeySharp.Core
         {
             var position = _position;
             while (IsDigit(_ch)) ReadChar();
+            return _input.Substring(position, _position - position);
+        }
+
+        private string ReadString()
+        {
+            var position = _position + 1;
+            while (true)
+            {
+                ReadChar();
+                if (_ch == '"' || _ch == '\0') break;
+            }
+
             return _input.Substring(position, _position - position);
         }
 

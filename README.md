@@ -11,4 +11,15 @@ of language design and implementation.
 
 ## Progress
 
-- Finished up to "Writing an Interpreter in Go -> Parsing -> 2.8 Extending the Parser -> Grouped Expressions"
+- Finished "Writing an Interpreter in Go"
+- Finished "Writing a Compiler in Go"
+- All tests (356 of them) passing
+
+## Next Steps
+
+- Review the code. I sped through the books and some bits might have more elegant implementations in C# compared to Go
+- Write an AST optimizer
+- Extend the built-in functions
+- Make the language more easily embeddable in C# applications
+- Go through the tests again and check if I missed any (the tests are from an earlier attempt at this project and might
+  not be 1-1 with the books)

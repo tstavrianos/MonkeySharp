@@ -1,13 +1,14 @@
 ﻿namespace MonkeySharp.Core
 {
-    public readonly struct Token(TokenType type, string literal)
+    public readonly struct Token
     {
-        public readonly TokenType Type = type;
-        public readonly string Literal = literal;
+        public readonly TokenType Type;
+        public readonly string Literal;
 
-        public override string ToString()
+        internal Token(TokenType type, string literal)
         {
-            return $"{{Type:{Type.String()} Literal:{Literal}}}";
+            Type = type;
+            Literal = literal;
         }
     }
 }

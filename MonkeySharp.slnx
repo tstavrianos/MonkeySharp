@@ -4,6 +4,7 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="MonkeySharp.Benchmarks/MonkeySharp.Benchmarks.csproj" />
   <Project Path="MonkeySharp.Cli/MonkeySharp.Cli.csproj" />
   <Project Path="MonkeySharp.Core/MonkeySharp.Core.csproj" />
   <Project Path="MonkeySharp.Tests/MonkeySharp.Tests.csproj" />

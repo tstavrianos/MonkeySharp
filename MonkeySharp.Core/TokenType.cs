@@ -5,10 +5,11 @@ namespace MonkeySharp.Core
     public enum TokenType
     {
         Illegal,
-        Eof,
+        EndOfFile,
 
         Identifier,
         Integer,
+        String,
 
         Assign,
         Plus,
@@ -22,11 +23,14 @@ namespace MonkeySharp.Core
 
         Comma,
         Semicolon,
+        Colon,
 
         LeftParen,
         RightParen,
         LeftBrace,
         RightBrace,
+        LeftBracket,
+        RightBracket,
 
         Function,
         Let,
@@ -48,28 +52,18 @@ namespace MonkeySharp.Core
             {
                 case TokenType.Illegal:
                     return "ILLEGAL";
-                case TokenType.Eof:
+                case TokenType.EndOfFile:
                     return "EOF";
                 case TokenType.Identifier:
                     return "IDENT";
                 case TokenType.Integer:
                     return "INT";
+                case TokenType.String:
+                    return "STRING";
                 case TokenType.Assign:
                     return "=";
                 case TokenType.Plus:
                     return "+";
-                case TokenType.Minus:
-                    return "-";
-                case TokenType.Bang:
-                    return "!";
-                case TokenType.Asterisk:
-                    return "*";
-                case TokenType.Slash:
-                    return "/";
-                case TokenType.LessThan:
-                    return "<";
-                case TokenType.GreaterThan:
-                    return ">";
                 case TokenType.Comma:
                     return ",";
                 case TokenType.Semicolon:
@@ -82,24 +76,42 @@ namespace MonkeySharp.Core
                     return "{";
                 case TokenType.RightBrace:
                     return "}";
+                case TokenType.LeftBracket:
+                    return "[";
+                case TokenType.RightBracket:
+                    return "]";
                 case TokenType.Function:
                     return "FUNCTION";
                 case TokenType.Let:
                     return "LET";
+                case TokenType.Minus:
+                    return "-";
+                case TokenType.Bang:
+                    return "!";
+                case TokenType.Asterisk:
+                    return "*";
+                case TokenType.Slash:
+                    return "/";
+                case TokenType.LessThan:
+                    return "<";
+                case TokenType.GreaterThan:
+                    return ">";
                 case TokenType.True:
-                    return "TRUE";
+                    return "true";
                 case TokenType.False:
-                    return "FALSE";
+                    return "false";
                 case TokenType.If:
-                    return "IF";
+                    return "if";
                 case TokenType.Else:
-                    return "ELSE";
+                    return "else";
                 case TokenType.Return:
-                    return "RETURN";
+                    return "return";
                 case TokenType.Equal:
                     return "==";
                 case TokenType.NotEqual:
                     return "!=";
+                case TokenType.Colon:
+                    return ":";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }

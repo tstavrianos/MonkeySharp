@@ -20,15 +20,17 @@ namespace MonkeySharp.Core
             Sum,
             Product,
             Prefix,
-            Call
+            Call,
+            Index
         }
 
         private Token _current;
         private Token _peek;
         private readonly Lexer _lexer;
         private readonly List<string> _errors = [];
-        private static readonly Dictionary<TokenType, Func<Parser, PrefixParseFn>> _prefixParseFns = new();
-        private static readonly Dictionary<TokenType, Func<Parser, InfixParseFn>> _infixParseFns = new();
+
+        private static readonly Dictionary<TokenType, Func<Parser, PrefixParseFn>> PrefixParseFns = new();
+        private static readonly Dictionary<TokenType, Func<Parser, InfixParseFn>> InfixParseFns = new();
 
         private static readonly Dictionary<TokenType, Precedence> Precedences = new()
         {
@@ -39,29 +41,38 @@ namespace MonkeySharp.Core
             {TokenType.Plus, Precedence.Sum},
             {TokenType.Minus, Precedence.Sum},
             {TokenType.Slash, Precedence.Product},
-            {TokenType.Asterisk, Precedence.Product}
+            {TokenType.Asterisk, Precedence.Product},
+            {TokenType.LeftParen, Precedence.Call},
+            {TokenType.LeftBracket, Precedence.Index}
         };
 
         public IReadOnlyList<string> Errors => _errors;
 
         static Parser()
         {
-            _prefixParseFns[TokenType.Identifier] = p => p.ParseIdentifier;
-            _prefixParseFns[TokenType.Integer] = p => p.ParseIntegerLiteral;
-            _prefixParseFns[TokenType.Bang] = p => p.ParsePrefixExpression;
-            _prefixParseFns[TokenType.Minus] = p => p.ParsePrefixExpression;
-            _prefixParseFns[TokenType.True] = p => p.ParseBoolean;
-            _prefixParseFns[TokenType.False] = p => p.ParseBoolean;
-            _prefixParseFns[TokenType.LeftParen] = p => p.ParseGroupedExpression;
+            PrefixParseFns[TokenType.Identifier] = (p) => p.ParseIdentifier;
+            PrefixParseFns[TokenType.Integer] = (p) => p.ParseIntegerLiteral;
+            PrefixParseFns[TokenType.Bang] = (p) => p.ParsePrefixExpression;
+            PrefixParseFns[TokenType.Minus] = (p) => p.ParsePrefixExpression;
+            PrefixParseFns[TokenType.True] = (p) => p.ParseBooleanLiteral;
+            PrefixParseFns[TokenType.False] = (p) => p.ParseBooleanLiteral;
+            PrefixParseFns[TokenType.LeftParen] = (p) => p.ParseGroupedExpression;
+            PrefixParseFns[TokenType.If] = (p) => p.ParseIfExpression;
+            PrefixParseFns[TokenType.Function] = (p) => p.ParseFunctionLiteral;
+            PrefixParseFns[TokenType.String] = (p) => p.ParseStringLiteral;
+            PrefixParseFns[TokenType.LeftBracket] = (p) => p.ParseArrayLiteral;
+            PrefixParseFns[TokenType.LeftBrace] = (p) => p.ParseHashLiteral;
 
-            _infixParseFns[TokenType.Plus] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.Minus] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.Slash] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.Asterisk] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.Equal] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.NotEqual] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.LessThan] = p => p.ParseInfixExpression;
-            _infixParseFns[TokenType.GreaterThan] = p => p.ParseInfixExpression;
+            InfixParseFns[TokenType.Plus] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.Minus] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.Slash] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.Asterisk] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.Equal] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.NotEqual] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.LessThan] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.GreaterThan] = (p) => p.ParseInfixExpression;
+            InfixParseFns[TokenType.LeftParen] = (p) => p.ParseCallExpression;
+            InfixParseFns[TokenType.LeftBracket] = (p) => p.ParseIndexExpression;
         }
 
         public Parser(Lexer lexer)
@@ -71,26 +82,205 @@ namespace MonkeySharp.Core
             NextToken();
         }
 
-        private void NextToken()
+        private HashLiteral ParseHashLiteral()
         {
-            _current = _peek;
-            _peek = _lexer.NextToken();
+            var token = _current;
+            var pairs = new Dictionary<Expression, Expression>();
+            while (!PeekTokenIs(TokenType.RightBrace))
+            {
+                NextToken();
+                var key = ParseExpression(Precedence.Lowest);
+                if (!ExpectPeek(TokenType.Colon)) return null;
+                NextToken();
+                var value = ParseExpression(Precedence.Lowest);
+                pairs.Add(key, value);
+                if (!PeekTokenIs(TokenType.RightBrace) && !ExpectPeek(TokenType.Comma)) return null;
+            }
+
+            if (!ExpectPeek(TokenType.RightBrace)) return null;
+            return new HashLiteral(token, pairs);
+        }
+
+        private IndexExpression ParseIndexExpression(Expression left)
+        {
+            var token = _current;
+            NextToken();
+            var index = ParseExpression(Precedence.Lowest);
+            if (!ExpectPeek(TokenType.RightBracket)) return null;
+            return new IndexExpression(token, left, index);
+        }
+
+        private ArrayLiteral ParseArrayLiteral()
+        {
+            var token = _current;
+            var elements = ParseExpressionList(TokenType.RightBracket);
+            return new ArrayLiteral(token, elements);
+        }
+
+        private List<Expression> ParseExpressionList(TokenType end)
+        {
+            var args = new List<Expression>();
+            if (PeekTokenIs(end))
+            {
+                NextToken();
+                return args;
+            }
+
+            NextToken();
+            args.Add(ParseExpression(Precedence.Lowest));
+            while (PeekTokenIs(TokenType.Comma))
+            {
+                NextToken();
+                NextToken();
+                args.Add(ParseExpression(Precedence.Lowest));
+            }
+
+            if (!ExpectPeek(end)) return null;
+            return args;
+        }
+
+        private StringLiteral ParseStringLiteral()
+        {
+            return new StringLiteral(_current, _current.Literal);
+        }
+
+        private CallExpression ParseCallExpression(Expression left)
+        {
+            var token = _current;
+            var arguments = ParseExpressionList(TokenType.RightParen);
+            return new CallExpression(token, left, arguments);
+        }
+
+        private FunctionLiteral ParseFunctionLiteral()
+        {
+            var token = _current;
+            if (!ExpectPeek(TokenType.LeftParen)) return null;
+
+            var parameters = ParseFunctionParameters();
+            if (!ExpectPeek(TokenType.LeftBrace)) return null;
+            var body = ParseBlockStatement();
+            return new FunctionLiteral(token, parameters, body);
+        }
+
+        private List<Identifier> ParseFunctionParameters()
+        {
+            var identifiers = new List<Identifier>();
+            if (PeekTokenIs(TokenType.RightParen))
+            {
+                NextToken();
+                return identifiers;
+            }
+
+            NextToken();
+            var ident = new Identifier(_current, _current.Literal);
+            identifiers.Add(ident);
+            while (PeekTokenIs(TokenType.Comma))
+            {
+                NextToken();
+                NextToken();
+                ident = new Identifier(_current, _current.Literal);
+                identifiers.Add(ident);
+            }
+
+            if (!ExpectPeek(TokenType.RightParen)) return null;
+            return identifiers;
+        }
+
+        private IfExpression ParseIfExpression()
+        {
+            var token = _current;
+            if (!ExpectPeek(TokenType.LeftParen)) return null;
+            NextToken();
+            var condition = ParseExpression(Precedence.Lowest);
+            if (!ExpectPeek(TokenType.RightParen)) return null;
+            if (!ExpectPeek(TokenType.LeftBrace)) return null;
+            var consequence = ParseBlockStatement();
+            BlockStatement alternative = null;
+            if (PeekTokenIs(TokenType.Else))
+            {
+                NextToken();
+                if (!ExpectPeek(TokenType.LeftBrace)) return null;
+                alternative = ParseBlockStatement();
+            }
+
+            return new IfExpression(token, condition, consequence, alternative);
+        }
+
+        private BlockStatement ParseBlockStatement()
+        {
+            var token = _current;
+            NextToken();
+            var statements = new List<Statement>();
+            while (!CurTokenIs(TokenType.RightBrace) && !CurTokenIs(TokenType.EndOfFile))
+            {
+                var statement = ParseStatement();
+                if (statement != null) statements.Add(statement);
+                NextToken();
+            }
+
+            return new BlockStatement(token, statements);
+        }
+
+        private Expression ParseGroupedExpression()
+        {
+            NextToken();
+            var exp = ParseExpression(Precedence.Lowest);
+            if (!ExpectPeek(TokenType.RightParen)) return null;
+            return exp;
+        }
+
+        private BooleanLiteral ParseBooleanLiteral()
+        {
+            var ret = _current.Type == TokenType.True ? BooleanLiteral.True : BooleanLiteral.False;
+            return ret;
+        }
+
+        private InfixExpression ParseInfixExpression(Expression left)
+        {
+            var token = _current;
+            var precedence = CurPrecedence();
+            NextToken();
+            var right = ParseExpression(precedence);
+            return new InfixExpression(token, left, token.Literal, right);
         }
 
         public ProgramNode ParseProgram()
         {
             var statements = new List<Statement>();
 
-            while (_current.Type != TokenType.Eof)
+            while (_current.Type != TokenType.EndOfFile)
             {
                 var statement = ParseStatement();
-
-                if (statement != null)
-                    statements.Add(statement);
+                if (statement != null) statements.Add(statement);
                 NextToken();
             }
 
             return new ProgramNode(statements);
+        }
+
+        private Identifier ParseIdentifier()
+        {
+            return new Identifier(_current, _current.Literal);
+        }
+
+        private IntegerLiteral ParseIntegerLiteral()
+        {
+            if (!long.TryParse(_current.Literal, out var value))
+            {
+                _errors.Add($"could not parse {_current.Literal} as integer");
+                return null;
+            }
+
+            var lit = new IntegerLiteral(_current, value);
+            return lit;
+        }
+
+        private PrefixExpression ParsePrefixExpression()
+        {
+            var token = _current;
+            NextToken();
+            var right = ParseExpression(Precedence.Prefix);
+            return new PrefixExpression(token, token.Literal, right);
         }
 
         private Statement ParseStatement()
@@ -106,41 +296,17 @@ namespace MonkeySharp.Core
             }
         }
 
-        private Statement ParseLetStatement()
-        {
-            var token = _current;
-            if (!ExpectPeek(TokenType.Identifier)) return null;
-            var name = new Identifier(_current, _current.Literal);
-            if (!ExpectPeek(TokenType.Assign)) return null;
-
-            while (_current.Type != TokenType.Semicolon)
-                NextToken();
-
-            return new LetStatement(token, name, null);
-        }
-
-        private Statement ParseReturnStatement()
-        {
-            var token = _current;
-            NextToken();
-
-            while (_current.Type != TokenType.Semicolon) NextToken();
-
-            return new ReturnStatement(token, null);
-        }
-
-        private Statement ParseExpressionStatement()
+        private ExpressionStatement ParseExpressionStatement()
         {
             var token = _current;
             var expression = ParseExpression(Precedence.Lowest);
-            if (_peek.Type == TokenType.Semicolon)
-                NextToken();
+            if (PeekTokenIs(TokenType.Semicolon)) NextToken();
             return new ExpressionStatement(token, expression);
         }
 
         private Expression ParseExpression(Precedence precedence)
         {
-            if (!_prefixParseFns.TryGetValue(_current.Type, out var prefixFn))
+            if (!PrefixParseFns.TryGetValue(_current.Type, out var prefixFn))
             {
                 NoPrefixParseFnError(_current.Type);
                 return null;
@@ -149,83 +315,39 @@ namespace MonkeySharp.Core
             var prefix = prefixFn(this);
             var leftExp = prefix();
 
-            while (_peek.Type != TokenType.Semicolon && precedence < PeekPrecedence())
+            while (!PeekTokenIs(TokenType.Semicolon) && precedence < PeekPrecedence())
             {
-                if (!_infixParseFns.TryGetValue(_peek.Type, out var infixFn)) return leftExp;
-                var infix = infixFn(this);
+                if (!InfixParseFns.TryGetValue(_peek.Type, out var infixFn)) return leftExp;
                 NextToken();
+                var infix = infixFn(this);
                 leftExp = infix(leftExp);
             }
 
             return leftExp;
         }
 
-        private Expression ParseIdentifier()
-        {
-            return new Identifier(_current, _current.Literal);
-        }
-
-        private Expression ParseIntegerLiteral()
+        private ReturnStatement ParseReturnStatement()
         {
             var token = _current;
-            if (!long.TryParse(_current.Literal, out var value))
-            {
-                _errors.Add("Could not parse " + _current.Literal + " as integer.");
-                return null;
-            }
-
-            return new IntegerLiteral(token, value);
+            NextToken();
+            var returnValue = ParseExpression(Precedence.Lowest);
+            if (PeekTokenIs(TokenType.Semicolon)) NextToken();
+            return new ReturnStatement(token, returnValue);
         }
 
-        private Expression ParsePrefixExpression()
+        private LetStatement ParseLetStatement()
         {
             var token = _current;
-
-            var operatorLiteral = _current.Literal;
-
+            if (!ExpectPeek(TokenType.Identifier)) return null;
+            var name = new Identifier(_current, _current.Literal);
+            if (!ExpectPeek(TokenType.Assign)) return null;
             NextToken();
+            var value = ParseExpression(Precedence.Lowest);
+            if (value is FunctionLiteral functionLiteral) functionLiteral.Name = name.Value;
 
-            var right = ParseExpression(Precedence.Prefix);
+            if (PeekTokenIs(TokenType.Semicolon)) NextToken();
 
-            return new PrefixExpression(token, operatorLiteral, right);
-        }
-
-        private Expression ParseInfixExpression(Expression left)
-        {
-            var token = _current;
-            var operatorLiteral = _current.Literal;
-
-            var precedence = CurrentPrecedence();
-            NextToken();
-            var right = ParseExpression(precedence);
-            return new InfixExpression(token, left, operatorLiteral, right);
-        }
-
-        private Expression ParseBoolean()
-        {
-            return _current.Type == TokenType.True ? BooleanLiteral.True : BooleanLiteral.False;
-        }
-
-        private Expression ParseGroupedExpression()
-        {
-            NextToken();
-            var exp = ParseExpression(Precedence.Lowest);
-
-            if (!ExpectPeek(TokenType.RightParen)) return null;
-
-            return exp;
-        }
-
-        private bool ExpectPeek(TokenType type)
-        {
-            if (_peek.Type == type)
-            {
-                NextToken();
-                return true;
-            }
-
-            PeekError(type);
-            return false;
+            return new LetStatement(token, name, value);
         }
 
         private Precedence PeekPrecedence()
@@ -233,19 +355,49 @@ namespace MonkeySharp.Core
             return Precedences.GetValueOrDefault(_peek.Type, Precedence.Lowest);
         }
 
-        private Precedence CurrentPrecedence()
+        private Precedence CurPrecedence()
         {
             return Precedences.GetValueOrDefault(_current.Type, Precedence.Lowest);
         }
 
-        private void PeekError(TokenType tokenType)
+        private void NoPrefixParseFnError(TokenType tokenType)
         {
-            _errors.Add($"Expected next token to be {tokenType}, got {_peek.Type} instead");
+            _errors.Add($"no prefix parse function for {tokenType} found");
         }
 
-        private void NoPrefixParseFnError(TokenType type)
+        private void NextToken()
         {
-            _errors.Add($"No prefix parse function for {type.String()} found");
+            _current = _peek;
+            _peek = _lexer.NextToken();
+        }
+
+        private bool CurTokenIs(TokenType type)
+        {
+            return _current.Type == type;
+        }
+
+        private bool PeekTokenIs(TokenType type)
+        {
+            return _peek.Type == type;
+        }
+
+        private bool ExpectPeek(TokenType type)
+        {
+            if (PeekTokenIs(type))
+            {
+                NextToken();
+                return true;
+            }
+
+            PeekError(type);
+
+            return false;
+        }
+
+        private void PeekError(TokenType type)
+        {
+            var msg = $"expected next token to be {type}, got {_peek.Type} instead";
+            _errors.Add(msg);
         }
     }
 }

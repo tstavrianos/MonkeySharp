@@ -1,0 +1,36 @@
+﻿namespace MonkeySharp.Core.VirtualMachine
+{
+    public enum OpCode : byte
+    {
+        Constant,
+        Add,
+        Pop,
+        Subtract,
+        Multiply,
+        Divide,
+        True,
+        False,
+        Equal,
+        NotEqual,
+        GreaterThan,
+        Minus,
+        Bang,
+        JumpNotTruthy,
+        Jump,
+        Null,
+        SetGlobal,
+        GetGlobal,
+        Array,
+        Hash,
+        Index,
+        Call,
+        ReturnValue,
+        Return,
+        GetLocal,
+        SetLocal,
+        GetBuiltin,
+        Closure,
+        GetFree,
+        CurrentClosure
+    }
+}
