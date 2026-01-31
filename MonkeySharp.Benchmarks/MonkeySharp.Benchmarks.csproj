@@ -1,22 +1,35 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <OutputType>Exe</OutputType>
+	    <LangVersion>latest</LangVersion>
+	    <TargetFramework>net10.0</TargetFramework>
+	    <OutputType>Exe</OutputType>
+	    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+	    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+	    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+	    <AnalysisLevel>latest</AnalysisLevel>
+	    <RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
+	    <RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
+	    <NoWarn>$(NoWarn);NETSDK1206</NoWarn>
+
+	    <DefineConstants Condition="'$(CheckCacheMisses)' == 'true'">CHECK_CACHE_MISSES</DefineConstants>
     </PropertyGroup>
-    <PropertyGroup>
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <DebugType>pdbonly</DebugType>
-        <DebugSymbols>true</DebugSymbols>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Optimize>true</Optimize>
-        <Configuration>Release</Configuration>
-        <IsPackable>false</IsPackable>
-    </PropertyGroup>
+
+	<ItemGroup Label="Analyzers">
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.102" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.Analyzers" Version="4.15.0" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.CodeAnalysis.Analyzers" Version="4.15.0" PrivateAssets="all" />
+		<PackageReference Include="Roslynator.Formatting.Analyzers" Version="4.15.0" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup Label="Benchmark">
+		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+		<PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8" />
+		<PackageReference Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
+	</ItemGroup>
+
     <ItemGroup>
-        <PackageReference Include="BenchmarkDotNet" Version="0.15.8"/>
-        <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.15.8"/>
-    </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\MonkeySharp.Core\MonkeySharp.Core.csproj"/>
+        <ProjectReference Include="..\MonkeySharp.Core\MonkeySharp.Core.csproj" />
     </ItemGroup>
 </Project>

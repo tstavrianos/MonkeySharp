@@ -109,7 +109,7 @@ public class Evaluator
         return new HashObject(pairs);
     }
 
-    private IObject EvalIndexExpression(IObject left, IObject index)
+    private static IObject EvalIndexExpression(IObject left, IObject index)
     {
         if (left is ArrayObject arrayObject && index is IntegerObject integerObject)
             return EvalArrayIndexExpression(arrayObject, integerObject);
@@ -119,7 +119,7 @@ public class Evaluator
         return new ErrorObject($"index operator not supported: {left.Type}");
     }
 
-    private IObject EvalHashIndexExpression(HashObject hashObject, IObject index)
+    private static IObject EvalHashIndexExpression(HashObject hashObject, IObject index)
     {
         if (index is not IHashableObject hashKey)
             return new ErrorObject($"unusable as hash key: {index.Type}");
@@ -129,7 +129,7 @@ public class Evaluator
         return pair.Value;
     }
 
-    private IObject EvalArrayIndexExpression(ArrayObject arrayObject, IntegerObject integerObject)
+    private static IObject EvalArrayIndexExpression(ArrayObject arrayObject, IntegerObject integerObject)
     {
         var max = arrayObject.Elements.Count - 1;
         if (integerObject.Value < 0 || integerObject.Value > max)
@@ -157,7 +157,7 @@ public class Evaluator
         return new ErrorObject($"not a function: {function.Type}");
     }
 
-    private Environment ExtendFunctionEnv(FunctionObject functionObject, List<IObject> args)
+    private static Environment ExtendFunctionEnv(FunctionObject functionObject, List<IObject> args)
     {
         var env = new Environment(functionObject.Environment);
         for (var i = 0; i < functionObject.Parameters.Count; i++)
@@ -179,7 +179,7 @@ public class Evaluator
         return result;
     }
 
-    private IObject EvalIdentifier(Identifier identifier, Environment environment)
+    private static IObject EvalIdentifier(Identifier identifier, Environment environment)
     {
         var (val, ok) = environment.Get(identifier.Value);
         if (ok) return val;
@@ -222,14 +222,14 @@ public class Evaluator
         return NullObject.Null;
     }
 
-    private bool IsTruthy(IObject obj)
+    private static bool IsTruthy(IObject obj)
     {
         if (obj == NullObject.Null) return false;
         if (obj == BooleanObject.False) return false;
         return true;
     }
 
-    private IObject EvalInfixExpression(IObject left, string @operator, IObject right)
+    private static IObject EvalInfixExpression(IObject left, string @operator, IObject right)
     {
         if (left is IntegerObject leftInteger && right is IntegerObject rightInteger)
             return EvalIntegerInfixOperator(leftInteger, @operator, rightInteger);
@@ -245,7 +245,7 @@ public class Evaluator
             $"unknown operator: {left.Type} {@operator} {right.Type}");
     }
 
-    private IObject EvalStringInfixOperator(StringObject leftString, string @operator, StringObject rightString)
+    private static IObject EvalStringInfixOperator(StringObject leftString, string @operator, StringObject rightString)
     {
         if (@operator == "+")
             return new StringObject(leftString.Value + rightString.Value);
@@ -256,7 +256,7 @@ public class Evaluator
         return new ErrorObject($"unknown operator: STRING {@operator} STRING");
     }
 
-    private IObject EvalIntegerInfixOperator(IntegerObject leftInteger, string @operator,
+    private static IObject EvalIntegerInfixOperator(IntegerObject leftInteger, string @operator,
         IntegerObject rightInteger)
     {
         switch (@operator)
@@ -282,7 +282,7 @@ public class Evaluator
         return new ErrorObject($"unknown operator: INTEGER {@operator} INTEGER");
     }
 
-    private IObject EvalBooleanInfixOperator(BooleanObject leftBoolean, string @operator,
+    private static IObject EvalBooleanInfixOperator(BooleanObject leftBoolean, string @operator,
         BooleanObject rightBoolean)
     {
         switch (@operator)
@@ -296,7 +296,7 @@ public class Evaluator
         return new ErrorObject($"unknown operator: BOOLEAN {@operator} BOOLEAN");
     }
 
-    private IObject EvalPrefixExpression(string @operator, IObject right)
+    private static IObject EvalPrefixExpression(string @operator, IObject right)
     {
         switch (@operator)
         {
@@ -309,14 +309,14 @@ public class Evaluator
         }
     }
 
-    private IObject EvalMinusPrefixOperator(IObject right)
+    private static IObject EvalMinusPrefixOperator(IObject right)
     {
         if (right is not IntegerObject integer)
             return new ErrorObject($"unknown operator: -{right.Type}");
         return new IntegerObject(-integer.Value);
     }
 
-    private IObject EvalBangOperator(IObject right)
+    private static BooleanObject EvalBangOperator(IObject right)
     {
         if (right == BooleanObject.True) return BooleanObject.False;
         if (right == BooleanObject.False) return BooleanObject.True;
