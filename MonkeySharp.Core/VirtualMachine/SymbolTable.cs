@@ -43,24 +43,18 @@ namespace MonkeySharp.Core.VirtualMachine
 
         internal Symbol DefineBuiltin(int index, string name)
         {
-            var symbol = new Symbol(name, SymbolScope.Builtin, index);
-            _store[name] = symbol;
-            return symbol;
+            return _store[name] = new Symbol(name, SymbolScope.Builtin, index);
         }
 
         internal Symbol DefineFree(Symbol original)
         {
             FreeSymbols.Add(original);
-            var symbol = new Symbol(original.Name, SymbolScope.Free, FreeSymbols.Count - 1);
-            _store[original.Name] = symbol;
-            return symbol;
+            return _store[original.Name] = new Symbol(original.Name, SymbolScope.Free, FreeSymbols.Count - 1);
         }
 
         internal Symbol DefineFunctionName(string name)
         {
-            var symbol = new Symbol(name, SymbolScope.Function, 0);
-            _store[name] = symbol;
-            return symbol;
+            return _store[name] = new Symbol(name, SymbolScope.Function, 0);
         }
     }
 }

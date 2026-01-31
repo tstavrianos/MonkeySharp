@@ -13,6 +13,7 @@ namespace MonkeySharp.Core.Ast
 
         // simple scoped constant propagation maps
         private readonly List<Dictionary<string, Expression>> _scopes = new();
+        private readonly Dictionary<string, bool> _mutableVariables = new();
 
         public ProgramNode Optimize(ProgramNode programNode)
         {
@@ -409,6 +410,13 @@ namespace MonkeySharp.Core.Ast
             var (index, indexModified) = indexExpression.Index.Accept(this);
             modified |= indexModified;
 
+            if (left is ArrayLiteral arrayLit && index is IntegerLiteral indexLit)
+            {
+                var idx = (int)indexLit.Value;
+                if (idx >= 0 && idx < arrayLit.Elements.Count)
+                    return (arrayLit.Elements[idx], true);
+            }
+
             if (modified)
                 return (new IndexExpression(indexExpression.Token, left, index), true);
 
@@ -440,6 +448,28 @@ namespace MonkeySharp.Core.Ast
             var modified = false;
             var (value, valueModified) = letStatement.Value.Accept(this);
             modified |= valueModified;
+
+            var varName = letStatement.Name.Value;
+
+            // Check if variable was already defined (reassignment)
+            if (_mutableVariables.ContainsKey(varName))
+            {
+                _mutableVariables[varName] = true; // Mark as mutated
+                // Remove from all scopes since it's no longer constant
+                foreach (var scope in _scopes)
+                    scope.Remove(varName);
+            }
+            else
+            {
+                _mutableVariables[varName] = false;
+            }
+
+            // Only propagate if immutable and literal
+            if (!_mutableVariables[varName] && value is IntegerLiteral or BooleanLiteral or StringLiteral)
+            {
+                var current = CurrentScope();
+                current[varName] = value;
+            }
 
             // If value is a simple literal, record it in the current scope for propagation
             if (value is IntegerLiteral or BooleanLiteral or StringLiteral)
@@ -508,6 +538,18 @@ namespace MonkeySharp.Core.Ast
 
                 var (newStatement, statementModified) = statement.Accept(this);
                 modified |= statementModified;
+
+                // NEW: Check for if-expression with constant false condition
+                if (newStatement is ExpressionStatement { Expression: IfExpression ifExpr })
+                {
+                    if (ifExpr.Condition is BooleanLiteral { Value: false } && ifExpr.Alternative == null)
+                    {
+                        // Skip this statement entirely - it will never execute
+                        modified = true;
+                        continue;
+                    }
+                }
+
                 statements.Add(newStatement);
 
                 if (newStatement is ReturnStatement) sawReturn = true;

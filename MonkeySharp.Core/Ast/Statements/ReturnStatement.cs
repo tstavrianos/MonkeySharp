@@ -1,24 +1,46 @@
 ﻿using MonkeySharp.Core.Ast.Visitors;
 
-namespace MonkeySharp.Core.Ast.Statements
+namespace MonkeySharp.Core.Ast.Statements;
+
+/// <summary>
+/// Represents a return statement in the abstract syntax tree.
+/// A return statement returns a value from a function (e.g., "return x + 5;").
+/// </summary>
+/// <param name="token">The token associated with this statement (the 'return' keyword).</param>
+/// <param name="returnValue">The expression whose value will be returned.</param>
+public class ReturnStatement(Token token, Expression returnValue) : Statement(token)
 {
-    public class ReturnStatement(Token token, Expression returnValue) : Statement(token)
+    /// <summary>
+    /// Gets the expression representing the value to be returned.
+    /// </summary>
+    public Expression ReturnValue { get; } = returnValue;
+
+    /// <summary>
+    /// Returns a string representation of the return statement in source code format.
+    /// </summary>
+    /// <returns>A string in the format "return value;" where value is the string representation of the return expression.</returns>
+    public override string ToString()
     {
-        public Expression ReturnValue { get; } = returnValue;
+        return $"{TokenLiteral} {ReturnValue?.ToString() ?? string.Empty};";
+    }
 
-        public override string ToString()
-        {
-            return $"{TokenLiteral} {(ReturnValue != null ? ReturnValue.ToString() : string.Empty)};";
-        }
+    /// <summary>
+    /// Accepts a visitor for processing this statement without a return value.
+    /// </summary>
+    /// <param name="visitor">The visitor to accept.</param>
+    public override void Accept(IStatementVisitor visitor)
+    {
+        visitor.Visit(this);
+    }
 
-        public override void Accept(IStatementVisitor visitor)
-        {
-            visitor.Visit(this);
-        }
-
-        public override T Accept<T>(IStatementVisitor<T> visitor)
-        {
-            return visitor.Visit(this);
-        }
+    /// <summary>
+    /// Accepts a visitor for processing this statement with a return value.
+    /// </summary>
+    /// <typeparam name="T">The type of value returned by the visitor.</typeparam>
+    /// <param name="visitor">The visitor to accept.</param>
+    /// <returns>The result of the visitor's processing.</returns>
+    public override T Accept<T>(IStatementVisitor<T> visitor)
+    {
+        return visitor.Visit(this);
     }
 }
