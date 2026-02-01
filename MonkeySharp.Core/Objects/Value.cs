@@ -1,11 +1,11 @@
 ﻿using MonkeySharp.Core.Ast.Expressions;
 using MonkeySharp.Core.Ast.Statements;
+using MonkeySharp.Core.Interpreter;
+using MonkeySharp.Core.VirtualMachine;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using MonkeySharp.Core.VirtualMachine;
-using Environment = MonkeySharp.Core.Interpreter.Environment;
 
 namespace MonkeySharp.Core.Objects;
 
@@ -115,7 +115,8 @@ public readonly struct Value : IEquatable<Value>
         return new Value(ValueKind.Hash, 0, pairs);
     }
 
-    public static Value Function(IReadOnlyList<Identifier> parameters, BlockStatement body, Environment environment)
+    public static Value Function(IReadOnlyList<Identifier> parameters, BlockStatement body,
+        ValueEnvironment environment)
     {
         return new Value(ValueKind.Function, 0, (parameters, body, environment));
     }
@@ -173,8 +174,10 @@ public readonly struct Value : IEquatable<Value>
     public Dictionary<HashKey, (Value Key, Value Value)> HashPairs =>
         _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>) _objValue : null;
 
-    public (IReadOnlyList<Identifier> Parameters, BlockStatement Body, Environment Environment) FunctionData =>
-        _kind == ValueKind.Function ? ((IReadOnlyList<Identifier>, BlockStatement, Environment)) _objValue : default;
+    public (IReadOnlyList<Identifier> Parameters, BlockStatement Body, ValueEnvironment Environment) FunctionData =>
+        _kind == ValueKind.Function
+            ? ((IReadOnlyList<Identifier>, BlockStatement, ValueEnvironment)) _objValue
+            : default;
 
     public Func<IReadOnlyList<Value>, Value> BuiltinFunction =>
         _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>) _objValue : null;

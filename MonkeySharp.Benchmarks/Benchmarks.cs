@@ -78,6 +78,7 @@ fibonacci(20);";
     }
 
     [Benchmark(Baseline = true)]
+    [BenchmarkCategory(Categories.Native)]
     public long BenchmarkNative()
     {
         return fibonacci(20);
@@ -91,6 +92,16 @@ fibonacci(20);";
         var result = evaluator.Eval(_program, new Environment());
         if (result is not IntegerObject i) return long.MinValue;
         return i.Value;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory(Categories.ValueEvaluator)]
+    public long BenchmarkValueEvaluator()
+    {
+        var evaluator = new ValueEvaluator();
+        var result = evaluator.Eval(_program, new ValueEnvironment());
+        if (!result.IsInteger) return long.MinValue;
+        return result.IntValue;
     }
 
     [Benchmark]
@@ -125,14 +136,14 @@ fibonacci(20);";
         return i.Value;
     }
 
-    [Benchmark]
+    /*[Benchmark]
     [BenchmarkCategory(Categories.IL)]
     public long BenchmarkIL()
     {
         var result = _function();
         if (result is not IntegerObject i) return long.MinValue;
         return i.Value;
-    }
+    }*/
 
     /*[Benchmark]
     [BenchmarkCategory(Categories.Evaluator)]
