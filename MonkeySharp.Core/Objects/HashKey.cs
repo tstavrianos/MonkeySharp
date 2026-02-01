@@ -1,42 +1,41 @@
 ﻿using System;
 
-namespace MonkeySharp.Core.Objects
+namespace MonkeySharp.Core.Objects;
+
+public readonly struct HashKey : IEquatable<HashKey>
 {
-    public readonly struct HashKey : IEquatable<HashKey>
+    public string Type { get; }
+
+    public ulong Value { get; }
+
+    internal HashKey(string objectType, ulong value)
     {
-        public string Type { get; }
+        Type = objectType;
+        Value = value;
+    }
 
-        public ulong Value { get; }
+    public bool Equals(HashKey other)
+    {
+        return Type == other.Type && Value == other.Value;
+    }
 
-        internal HashKey(string objectType, ulong value)
-        {
-            Type = objectType;
-            Value = value;
-        }
+    public override bool Equals(object obj)
+    {
+        return obj is HashKey other && Equals(other);
+    }
 
-        public bool Equals(HashKey other)
-        {
-            return Type == other.Type && Value == other.Value;
-        }
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(Type, Value);
+    }
 
-        public override bool Equals(object obj)
-        {
-            return obj is HashKey other && Equals(other);
-        }
+    public static bool operator ==(HashKey left, HashKey right)
+    {
+        return left.Equals(right);
+    }
 
-        public override int GetHashCode()
-        {
-            return HashCode.Combine(Type, Value);
-        }
-
-        public static bool operator ==(HashKey left, HashKey right)
-        {
-            return left.Equals(right);
-        }
-
-        public static bool operator !=(HashKey left, HashKey right)
-        {
-            return !left.Equals(right);
-        }
+    public static bool operator !=(HashKey left, HashKey right)
+    {
+        return !left.Equals(right);
     }
 }

@@ -1,4 +1,5 @@
-﻿using BenchmarkDotNet.Attributes;
+﻿using System;
+using BenchmarkDotNet.Attributes;
 using MonkeySharp.Core;
 using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Interpreter;
@@ -6,16 +7,18 @@ using MonkeySharp.Core.VirtualMachine;
 using Environment = MonkeySharp.Core.Interpreter.Environment;
 using BenchmarkDotNet.Jobs;
 using Microsoft.VSDiagnostics;
+using MonkeySharp.Core.Objects;
 
 namespace MonkeySharp.Benchmarks;
 
-[SimpleJob(RuntimeMoniker.Net10_0)]
-[SimpleJob(RuntimeMoniker.NativeAot10_0)]
+//[SimpleJob(RuntimeMoniker.Net10_0)]
+//[SimpleJob(RuntimeMoniker.NativeAot10_0)]
 [MemoryDiagnoser]
 [CPUUsageDiagnoser]
 #if CHECK_CACHE_MISSES
     [HardwareCounters(BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses)]
 #endif
+[ReturnValueValidator(true)]
 public class Benchmarks
 {
     private const string Input = @"
@@ -32,10 +35,28 @@ let fibonacci = fn(x) {
 };
 fibonacci(20);";
 
+    private static int fibonacci(int x)
+    {
+        if (x == 0)
+        {
+            return 0;
+        }
+        else
+        {
+            if (x == 1)
+                return 1;
+            else
+                return fibonacci(x - 1) + fibonacci(x - 2);
+        }
+    }
+
     private ProgramNode _program;
-    private ProgramNode _programOptimized;
+
+    //private ProgramNode _programOptimized;
     private ByteCode _byteCode;
-    private ByteCode _byteCodeOptimized;
+
+    //private ByteCode _byteCodeOptimized;
+    private Func<object> _function;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -43,67 +64,119 @@ fibonacci(20);";
         var lexer = new Lexer(Input);
         var parser = new Parser(lexer);
         _program = parser.ParseProgram();
-        var optimizer = new Optimizer();
-        _programOptimized = optimizer.Optimize(_program);
+        //var optimizer = new Optimizer();
+        //_programOptimized = optimizer.Optimize(_program);
         var compiler = new Compiler();
         compiler.Compile(_program);
         _byteCode = compiler.ByteCode();
+        var ilCompiler = new ILCompiler();
+        _function = ilCompiler.CompileProgram(_program);
 
-        var compilerOptimized = new Compiler();
-        compilerOptimized.Compile(_programOptimized);
-        _byteCodeOptimized = compilerOptimized.ByteCode();
+        //var compilerOptimized = new Compiler();
+        //compilerOptimized.Compile(_programOptimized);
+        //_byteCodeOptimized = compilerOptimized.ByteCode();
+    }
+
+    [Benchmark(Baseline = true)]
+    public long BenchmarkNative()
+    {
+        return fibonacci(20);
     }
 
     [Benchmark]
     [BenchmarkCategory(Categories.Evaluator)]
-    public void BenchmarkEvaluator()
+    public long BenchmarkEvaluator()
     {
         var evaluator = new Evaluator();
         var result = evaluator.Eval(_program, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
     }
 
     [Benchmark]
     [BenchmarkCategory(Categories.VisitorEvaluator)]
-    public void BenchmarkVisitorEvaluator()
+    public long BenchmarkVisitorEvaluator()
+    {
+        var evaluator = new VisitorEvaluator(false);
+        var result = evaluator.Eval(_program, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory(Categories.VisitorEvaluator)]
+    [BenchmarkCategory(Categories.StaticDispatch)]
+    public long BenchmarkVisitorEvaluator_StaticDispatch()
     {
         var evaluator = new VisitorEvaluator();
         var result = evaluator.Eval(_program, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
     }
 
     [Benchmark]
     [BenchmarkCategory(Categories.Vm)]
-    public void BenchmarkVm()
+    public long BenchmarkVm()
     {
         var vm = new Vm(_byteCode);
         vm.Run();
         var result = vm.LastPoppedStackElement;
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
     }
 
     [Benchmark]
+    [BenchmarkCategory(Categories.IL)]
+    public long BenchmarkIL()
+    {
+        var result = _function();
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
+    }
+
+    /*[Benchmark]
     [BenchmarkCategory(Categories.Evaluator)]
     [BenchmarkCategory(Categories.Optimized)]
-    public void BenchmarkEvaluatorOptimized()
+    public long BenchmarkEvaluatorOptimized()
     {
         var evaluator = new Evaluator();
         var result = evaluator.Eval(_programOptimized, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
     }
 
     [Benchmark]
     [BenchmarkCategory(Categories.VisitorEvaluator)]
     [BenchmarkCategory(Categories.Optimized)]
-    public void BenchmarkVisitorEvaluatorOptimized()
+    public long BenchmarkVisitorEvaluatorOptimized()
+    {
+        var evaluator = new VisitorEvaluator(false);
+        var result = evaluator.Eval(_programOptimized, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory(Categories.VisitorEvaluator)]
+    [BenchmarkCategory(Categories.Optimized)]
+    [BenchmarkCategory(Categories.StaticDispatch)]
+    public long BenchmarkVisitorEvaluatorOptimized_StaticDispatch()
     {
         var evaluator = new VisitorEvaluator();
         var result = evaluator.Eval(_programOptimized, new Environment());
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
     }
 
     [Benchmark]
     [BenchmarkCategory(Categories.Vm)]
     [BenchmarkCategory(Categories.Optimized)]
-    public void BenchmarkVmOptimized()
+    public long BenchmarkVmOptimized()
     {
         var vm = new Vm(_byteCodeOptimized);
         vm.Run();
         var result = vm.LastPoppedStackElement;
-    }
+        if (result is not IntegerObject i) return long.MinValue;
+        return i.Value;
+    }*/
 }

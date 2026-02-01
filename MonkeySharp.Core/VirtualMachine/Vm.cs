@@ -1,7 +1,8 @@
-﻿using System;
+﻿using MonkeySharp.Core.Objects;
+using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
-using MonkeySharp.Core.Objects;
+using System.Runtime.CompilerServices;
 
 namespace MonkeySharp.Core.VirtualMachine;
 
@@ -34,16 +35,19 @@ public class Vm
         Array.Copy(s, _globals, s.Length);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Frame CurrentFrame()
     {
         return _frames[_frameIndex - 1];
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void PushFrame(Frame frame)
     {
         _frames[_frameIndex++] = frame;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Frame PopFrame()
     {
         return _frames[--_frameIndex];
@@ -292,6 +296,7 @@ public class Vm
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string CallClosure(ClosureObject closure, int numArgs)
     {
         if (closure.Function.NumParameters != numArgs)
@@ -320,6 +325,7 @@ public class Vm
         return null;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteIndexExpression(IObject left, IObject index)
     {
         if (left is ArrayObject arrayLeft && index is IntegerObject integerIndex)
@@ -329,6 +335,7 @@ public class Vm
         return $"index operator not supported: {left.GetType().Name}";
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteHashIndex(HashObject hashLeft, IObject index)
     {
         if (index is not IHashableObject hashable) return $"unusable as hash key: {index.GetType().Name}";
@@ -337,6 +344,7 @@ public class Vm
         return Push(pair.Value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteArrayIndex(ArrayObject arrayLeft, IntegerObject integerIndex)
     {
         var i = (int) integerIndex.Value;
@@ -370,31 +378,28 @@ public class Vm
         return new ArrayObject(elements);
     }
 
-    private bool IsTruthy(IObject o)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsTruthy(IObject o)
     {
-        switch (o)
-        {
-            case BooleanObject b:
-                return b.Value;
-            case NullObject _:
-                return false;
-            default:
-                return true;
-        }
+        if (o == NullObject.Null) return false;
+        if (o is BooleanObject b && b == BooleanObject.False) return false;
+        return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteMinusOperator()
     {
         var op = Pop();
         switch (op)
         {
             case IntegerObject i:
-                return Push(new IntegerObject(-i.Value));
+                return Push(IntegerObject.Create(-i.Value));
             default:
                 return $"unsupported type for negation: {op.GetType().Name}";
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteBangOperator()
     {
         var op = Pop();
@@ -437,6 +442,7 @@ public class Vm
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteIntegerComparison(IntegerObject leftInt, OpCode op, IntegerObject rightInt)
     {
         switch (op)
@@ -452,6 +458,7 @@ public class Vm
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteBinaryOperation(OpCode op)
     {
         var right = Pop();
@@ -464,6 +471,7 @@ public class Vm
         return $"unsupported types for binary operation: {left.GetType().Name} {right.GetType().Name}";
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string ExecuteBinaryIntegerOperation(IntegerObject leftInt, OpCode op, IntegerObject rightInt)
     {
         long result;
@@ -485,9 +493,10 @@ public class Vm
                 return $"unknown integer operator: {op}";
         }
 
-        return Push(new IntegerObject(result));
+        return Push(IntegerObject.Create(result));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private string Push(IObject obj)
     {
         if (_sp >= StackSize) return "stack overflow";
@@ -497,6 +506,7 @@ public class Vm
         return null;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private IObject Pop()
     {
         var o = _stack[_sp - 1];

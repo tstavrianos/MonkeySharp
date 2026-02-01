@@ -1,23 +1,24 @@
 ﻿using System.Collections.Generic;
 using MonkeySharp.Core.Objects;
 
-namespace MonkeySharp.Core.Interpreter
+namespace MonkeySharp.Core.Interpreter;
+
+public class Environment(Environment outer = null, int? capacity = null)
 {
-    public class Environment(Environment outer = null)
+    private readonly Dictionary<string, IObject> _store = capacity != null
+        ? new Dictionary<string, IObject>(capacity.Value)
+        : new Dictionary<string, IObject>();
+
+    public (IObject, bool) Get(string name)
     {
-        private readonly Dictionary<string, IObject> _store = [];
+        if (_store.TryGetValue(name, out var value)) return (value, true);
+        if (outer != null) return outer.Get(name);
+        return (null, false);
+    }
 
-        public (IObject, bool) Get(string name)
-        {
-            if (_store.TryGetValue(name, out var value)) return (value, true);
-            if (outer != null) return outer.Get(name);
-            return (null, false);
-        }
-
-        public IObject Set(string name, IObject value)
-        {
-            _store[name] = value;
-            return value;
-        }
+    public IObject Set(string name, IObject value)
+    {
+        _store[name] = value;
+        return value;
     }
 }

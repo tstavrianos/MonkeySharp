@@ -3,7 +3,10 @@ using MonkeySharp.Core.Ast.Expressions;
 using MonkeySharp.Core.Ast.Statements;
 using MonkeySharp.Core.Ast.Visitors;
 using MonkeySharp.Core.Objects;
+using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace MonkeySharp.Core.Interpreter;
 
@@ -18,6 +21,21 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// The current execution environment containing variable bindings.
     /// </summary>
     private Environment _environment;
+
+    /// <summary>
+    /// When true, uses cached dispatch for improved performance.
+    /// When false, uses standard virtual dispatch (useful for debugging).
+    /// </summary>
+    private readonly bool _useCachedDispatch;
+
+    /// <summary>
+    /// Initializes a new instance of the VisitorEvaluator class.
+    /// </summary>
+    /// <param name="useCachedDispatch">Whether to use cached dispatch optimization (default: true).</param>
+    public VisitorEvaluator(bool useCachedDispatch = true)
+    {
+        _useCachedDispatch = useCachedDispatch;
+    }
 
     /// <summary>
     /// Evaluates an AST node within the specified environment.
@@ -54,7 +72,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
 
         foreach (var statement in program.Statements)
         {
-            result = statement.Accept(this);
+            result = _useCachedDispatch
+                ? statement.AcceptCached(this)
+                : statement.Accept(this);
 
             // Early return on return statements and errors
             if (result is ReturnValueObject returnValueObject)
@@ -72,10 +92,13 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="statement">The statement to evaluate.</param>
     /// <param name="environment">The environment for variable bindings.</param>
     /// <returns>The resulting object from evaluation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private IObject Eval(Statement statement, Environment environment)
     {
         _environment = environment;
-        return statement.Accept(this);
+        return _useCachedDispatch
+            ? statement.AcceptCached(this)
+            : statement.Accept(this);
     }
 
     /// <summary>
@@ -84,10 +107,13 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="expression">The expression to evaluate.</param>
     /// <param name="environment">The environment for variable bindings.</param>
     /// <returns>The resulting object from evaluation.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private IObject Eval(Expression expression, Environment environment)
     {
         _environment = environment;
-        return expression.Accept(this);
+        return _useCachedDispatch
+            ? expression.AcceptCached(this)
+            : expression.Accept(this);
     }
 
     #region IStatementVisitor<IObject> Implementation
@@ -99,7 +125,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The evaluated value, or an error object if evaluation fails.</returns>
     IObject IStatementVisitor<IObject>.Visit(LetStatement letStatement)
     {
-        var value = letStatement.Value.Accept(this);
+        var value = _useCachedDispatch
+            ? letStatement.Value.AcceptCached(this)
+            : letStatement.Value.Accept(this);
         if (value is ErrorObject)
             return value;
 
@@ -114,7 +142,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>A ReturnValueObject wrapping the evaluated value, or an error object.</returns>
     IObject IStatementVisitor<IObject>.Visit(ReturnStatement returnStatement)
     {
-        var value = returnStatement.ReturnValue.Accept(this);
+        var value = _useCachedDispatch
+            ? returnStatement.ReturnValue.AcceptCached(this)
+            : returnStatement.ReturnValue.Accept(this);
         if (value is ErrorObject)
             return value;
 
@@ -126,9 +156,12 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="expressionStatement">The expression statement to evaluate.</param>
     /// <returns>The result of evaluating the contained expression.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IObject IStatementVisitor<IObject>.Visit(ExpressionStatement expressionStatement)
     {
-        return expressionStatement.Expression.Accept(this);
+        return _useCachedDispatch
+            ? expressionStatement.Expression.AcceptCached(this)
+            : expressionStatement.Expression.Accept(this);
     }
 
     /// <summary>
@@ -143,7 +176,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
 
         foreach (var statement in blockStatement.Statements)
         {
-            result = statement.Accept(this);
+            result = _useCachedDispatch
+                ? statement.AcceptCached(this)
+                : statement.Accept(this);
 
             // Stop execution on return or error
             if (result is ReturnValueObject or ErrorObject)
@@ -179,9 +214,10 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="integerLiteral">The integer literal to evaluate.</param>
     /// <returns>An IntegerObject containing the literal's value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IObject IExpressionVisitor<IObject>.Visit(IntegerLiteral integerLiteral)
     {
-        return new IntegerObject(integerLiteral.Value);
+        return IntegerObject.Create(integerLiteral.Value);
     }
 
     /// <summary>
@@ -189,6 +225,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="booleanLiteral">The boolean literal to evaluate.</param>
     /// <returns>A singleton BooleanObject (True or False).</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IObject IExpressionVisitor<IObject>.Visit(BooleanLiteral booleanLiteral)
     {
         return booleanLiteral.Value ? BooleanObject.True : BooleanObject.False;
@@ -199,6 +236,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="stringLiteral">The string literal to evaluate.</param>
     /// <returns>A StringObject containing the literal's value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IObject IExpressionVisitor<IObject>.Visit(StringLiteral stringLiteral)
     {
         return new StringObject(stringLiteral.Value);
@@ -211,7 +249,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The result of applying the prefix operator, or an error object.</returns>
     IObject IExpressionVisitor<IObject>.Visit(PrefixExpression prefixExpression)
     {
-        var right = prefixExpression.Right.Accept(this);
+        var right = _useCachedDispatch
+            ? prefixExpression.Right.AcceptCached(this)
+            : prefixExpression.Right.Accept(this);
         if (right is ErrorObject)
             return right;
 
@@ -225,11 +265,15 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The result of applying the infix operator, or an error object.</returns>
     IObject IExpressionVisitor<IObject>.Visit(InfixExpression infixExpression)
     {
-        var left = infixExpression.Left.Accept(this);
+        var left = _useCachedDispatch
+            ? infixExpression.Left.AcceptCached(this)
+            : infixExpression.Left.Accept(this);
         if (left is ErrorObject)
             return left;
 
-        var right = infixExpression.Right.Accept(this);
+        var right = _useCachedDispatch
+            ? infixExpression.Right.AcceptCached(this)
+            : infixExpression.Right.Accept(this);
         if (right is ErrorObject)
             return right;
 
@@ -243,15 +287,21 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The result of the executed branch, or NullObject if no branch executes.</returns>
     IObject IExpressionVisitor<IObject>.Visit(IfExpression ifExpression)
     {
-        var condition = ifExpression.Condition.Accept(this);
+        var condition = _useCachedDispatch
+            ? ifExpression.Condition.AcceptCached(this)
+            : ifExpression.Condition.Accept(this);
         if (condition is ErrorObject)
             return condition;
 
         if (IsTruthy(condition))
-            return ifExpression.Consequence.Accept(this);
+            return _useCachedDispatch
+                ? ifExpression.Consequence.AcceptCached(this)
+                : ifExpression.Consequence.Accept(this);
 
         if (ifExpression.Alternative != null)
-            return ifExpression.Alternative.Accept(this);
+            return _useCachedDispatch
+                ? ifExpression.Alternative.AcceptCached(this)
+                : ifExpression.Alternative.Accept(this);
 
         return NullObject.Null;
     }
@@ -261,6 +311,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="functionLiteral">The function literal containing parameters and body.</param>
     /// <returns>A FunctionObject representing the function closure.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IObject IExpressionVisitor<IObject>.Visit(FunctionLiteral functionLiteral)
     {
         return new FunctionObject(functionLiteral.Parameters, functionLiteral.Body, _environment);
@@ -273,12 +324,14 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The result of calling the function with the evaluated arguments, or an error object.</returns>
     IObject IExpressionVisitor<IObject>.Visit(CallExpression callExpression)
     {
-        var function = callExpression.Function.Accept(this);
+        var function = _useCachedDispatch
+            ? callExpression.Function.AcceptCached(this)
+            : callExpression.Function.Accept(this);
         if (function is ErrorObject)
             return function;
 
         var args = EvaluateExpressions(callExpression.Arguments);
-        if (args.Count == 1 && args[0] is ErrorObject)
+        if (args.Length == 1 && args[0] is ErrorObject)
             return args[0];
 
         return ApplyFunction(function, args);
@@ -292,7 +345,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     IObject IExpressionVisitor<IObject>.Visit(ArrayLiteral arrayLiteral)
     {
         var elements = EvaluateExpressions(arrayLiteral.Elements);
-        if (elements.Count == 1 && elements[0] is ErrorObject)
+        if (elements.Length == 1 && elements[0] is ErrorObject)
             return elements[0];
 
         return new ArrayObject(elements);
@@ -305,11 +358,15 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <returns>The value at the specified index, NullObject if not found, or an error object.</returns>
     IObject IExpressionVisitor<IObject>.Visit(IndexExpression indexExpression)
     {
-        var left = indexExpression.Left.Accept(this);
+        var left = _useCachedDispatch
+            ? indexExpression.Left.AcceptCached(this)
+            : indexExpression.Left.Accept(this);
         if (left is ErrorObject)
             return left;
 
-        var index = indexExpression.Index.Accept(this);
+        var index = _useCachedDispatch
+            ? indexExpression.Index.AcceptCached(this)
+            : indexExpression.Index.Accept(this);
         if (index is ErrorObject)
             return index;
 
@@ -327,14 +384,18 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
 
         foreach (var (keyExpr, valueExpr) in hashLiteral.Pairs)
         {
-            var key = keyExpr.Accept(this);
+            var key = _useCachedDispatch
+                ? keyExpr.AcceptCached(this)
+                : keyExpr.Accept(this);
             if (key is ErrorObject)
                 return key;
 
             if (key is not IHashableObject hashableKey)
                 return new ErrorObject($"unusable as hash key: {key.Type}");
 
-            var value = valueExpr.Accept(this);
+            var value = _useCachedDispatch
+                ? valueExpr.AcceptCached(this)
+                : valueExpr.Accept(this);
             if (value is ErrorObject)
                 return value;
 
@@ -355,11 +416,12 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="obj">The object to test.</param>
     /// <returns>True if the object is truthy, false otherwise.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsTruthy(IObject obj)
     {
         if (obj == NullObject.Null)
             return false;
-        if (obj == BooleanObject.False)
+        if (obj is BooleanObject b && b == BooleanObject.False)
             return false;
         return true;
     }
@@ -370,6 +432,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="operator">The prefix operator (!, -).</param>
     /// <param name="right">The right operand.</param>
     /// <returns>The result of applying the operator, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluatePrefixExpression(string @operator, IObject right)
     {
         return @operator switch
@@ -385,12 +448,17 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="right">The operand to negate.</param>
     /// <returns>The boolean negation result.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BooleanObject EvaluateBangOperator(IObject right)
     {
-        if (right == BooleanObject.True)
-            return BooleanObject.False;
-        if (right == BooleanObject.False)
-            return BooleanObject.True;
+        if (right is BooleanObject b)
+        {
+            if (b == BooleanObject.True)
+                return BooleanObject.False;
+            if (b == BooleanObject.False)
+                return BooleanObject.True;
+        }
+
         if (right == NullObject.Null)
             return BooleanObject.True;
         return BooleanObject.False;
@@ -401,12 +469,13 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="right">The operand to negate.</param>
     /// <returns>The negated integer, or an error if the operand is not an integer.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateMinusPrefixOperator(IObject right)
     {
         if (right is not IntegerObject integer)
             return new ErrorObject($"unknown operator: -{right.Type}");
 
-        return new IntegerObject(-integer.Value);
+        return IntegerObject.Create(-integer.Value);
     }
 
     /// <summary>
@@ -416,6 +485,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="operator">The infix operator (+, -, *, /, ==, !=, &lt;, &gt;).</param>
     /// <param name="right">The right operand.</param>
     /// <returns>The result of applying the operator, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateInfixExpression(IObject left, string @operator, IObject right)
     {
         // Type-specific evaluation
@@ -442,14 +512,15 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="operator">The operator to apply.</param>
     /// <param name="right">The right integer operand.</param>
     /// <returns>The result of the operation, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateIntegerInfixExpression(IntegerObject left, string @operator, IntegerObject right)
     {
         return @operator switch
         {
-            "+" => new IntegerObject(left.Value + right.Value),
-            "-" => new IntegerObject(left.Value - right.Value),
-            "*" => new IntegerObject(left.Value * right.Value),
-            "/" => new IntegerObject(left.Value / right.Value),
+            "+" => IntegerObject.Create(left.Value + right.Value),
+            "-" => IntegerObject.Create(left.Value - right.Value),
+            "*" => IntegerObject.Create(left.Value * right.Value),
+            "/" => IntegerObject.Create(left.Value / right.Value),
             "<" => left.Value < right.Value ? BooleanObject.True : BooleanObject.False,
             ">" => left.Value > right.Value ? BooleanObject.True : BooleanObject.False,
             "==" => left.Value == right.Value ? BooleanObject.True : BooleanObject.False,
@@ -465,6 +536,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="operator">The operator to apply (==, !=).</param>
     /// <param name="right">The right boolean operand.</param>
     /// <returns>The result of the comparison, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateBooleanInfixExpression(BooleanObject left, string @operator, BooleanObject right)
     {
         return @operator switch
@@ -482,6 +554,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="operator">The operator to apply (+, ==, !=).</param>
     /// <param name="right">The right string operand.</param>
     /// <returns>The result of the operation, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateStringInfixExpression(StringObject left, string @operator, StringObject right)
     {
         return @operator switch
@@ -499,6 +572,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="left">The object being indexed (array or hash).</param>
     /// <param name="index">The index value.</param>
     /// <returns>The value at the index, NullObject if not found, or an error object.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateIndexExpression(IObject left, IObject index)
     {
         if (left is ArrayObject arrayObject && index is IntegerObject integerObject)
@@ -516,6 +590,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="arrayObject">The array being indexed.</param>
     /// <param name="index">The integer index.</param>
     /// <returns>The element at the index, or NullObject if out of bounds.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateArrayIndexExpression(ArrayObject arrayObject, IntegerObject index)
     {
         var max = arrayObject.Elements.Count - 1;
@@ -531,6 +606,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="hashObject">The hash being indexed.</param>
     /// <param name="index">The key to look up.</param>
     /// <returns>The value associated with the key, NullObject if not found, or an error if the key is not hashable.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvaluateHashIndexExpression(HashObject hashObject, IObject index)
     {
         if (index is not IHashableObject hashKey)
@@ -548,20 +624,29 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// </summary>
     /// <param name="expressions">The expressions to evaluate.</param>
     /// <returns>A list of evaluated objects, or a single-element list containing an error.</returns>
-    private List<IObject> EvaluateExpressions(IReadOnlyList<Expression> expressions)
+    private IObject[] EvaluateExpressions(IReadOnlyList<Expression> expressions)
     {
-        var result = new List<IObject>(expressions.Count);
+        var result = ArrayPool<IObject>.Shared.Rent(expressions.Count);
+        var actualCount = 0;
 
         foreach (var expression in expressions)
         {
-            var evaluated = expression.Accept(this);
+            var evaluated = _useCachedDispatch
+                ? expression.AcceptCached(this)
+                : expression.Accept(this);
             if (evaluated is ErrorObject)
+            {
+                ArrayPool<IObject>.Shared.Return(result);
                 return [evaluated];
+            }
 
-            result.Add(evaluated);
+            result[actualCount++] = evaluated;
         }
 
-        return result;
+        var final = new IObject[actualCount];
+        Array.Copy(result, final, actualCount);
+        ArrayPool<IObject>.Shared.Return(result);
+        return final;
     }
 
     /// <summary>
@@ -571,7 +656,7 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="function">The function to call.</param>
     /// <param name="args">The evaluated arguments.</param>
     /// <returns>The result of the function call, or an error object.</returns>
-    private IObject ApplyFunction(IObject function, List<IObject> args)
+    private IObject ApplyFunction(IObject function, IReadOnlyList<IObject> args)
     {
         switch (function)
         {
@@ -581,7 +666,9 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
                 var previousEnv = _environment;
                 _environment = extendedEnv;
 
-                var evaluated = functionObject.Body.Accept(this);
+                var evaluated = _useCachedDispatch
+                    ? functionObject.Body.AcceptCached(this)
+                    : functionObject.Body.Accept(this);
 
                 _environment = previousEnv;
 
@@ -607,9 +694,10 @@ public class VisitorEvaluator : IExpressionVisitor<IObject>, IStatementVisitor<I
     /// <param name="function">The function whose parameters to bind.</param>
     /// <param name="args">The argument values to bind.</param>
     /// <returns>A new environment with parameter bindings.</returns>
-    private static Environment ExtendFunctionEnvironment(FunctionObject function, List<IObject> args)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Environment ExtendFunctionEnvironment(FunctionObject function, IReadOnlyList<IObject> args)
     {
-        var env = new Environment(function.Environment);
+        var env = new Environment(function.Environment, args.Count);
 
         for (var i = 0; i < function.Parameters.Count; i++)
             env.Set(function.Parameters[i].Value, args[i]);

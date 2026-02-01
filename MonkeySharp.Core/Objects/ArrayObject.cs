@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 
-namespace MonkeySharp.Core.Objects
+namespace MonkeySharp.Core.Objects;
+
+public static partial class ObjectType
 {
-    public static partial class ObjectType
+    public const string Array = "ARRAY";
+}
+
+public class ArrayObject : IObject
+{
+    internal ArrayObject(IReadOnlyList<IObject> elements)
     {
-        public const string Array = "ARRAY";
+        Elements = new List<IObject>(elements);
     }
 
-    public class ArrayObject : IObject
-    {
-        internal ArrayObject(List<IObject> elements)
-        {
-            Elements = elements;
-        }
-
-        public string Type => ObjectType.Array;
-        public List<IObject> Elements { get; }
-        public string Inspect => $"[{string.Join(", ", Elements.Select(x => x.Inspect))}]";
-    }
+    public string Type => ObjectType.Array;
+    public List<IObject> Elements { get; }
+    public string Inspect => $"[{string.Join(", ", Elements.Select(x => x.Inspect))}]";
 }

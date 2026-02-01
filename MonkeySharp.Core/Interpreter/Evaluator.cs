@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
-using MonkeySharp.Core.Ast;
+﻿using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Ast.Expressions;
 using MonkeySharp.Core.Ast.Statements;
 using MonkeySharp.Core.Objects;
+using System;
+using System.Buffers;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace MonkeySharp.Core.Interpreter;
 
@@ -17,7 +20,7 @@ public class Evaluator
             case ExpressionStatement expressionStatement:
                 return Eval(expressionStatement.Expression, environment);
             case IntegerLiteral integerLiteral:
-                return new IntegerObject(integerLiteral.Value);
+                return IntegerObject.Create(integerLiteral.Value);
             case BooleanLiteral booleanLiteral:
                 return booleanLiteral.Value ? BooleanObject.True : BooleanObject.False;
             case PrefixExpression prefixExpression:
@@ -64,7 +67,7 @@ public class Evaluator
                 var function = Eval(callExpression.Function, environment);
                 if (function is ErrorObject) return function;
                 var args = EvalExpressions(callExpression.Arguments, environment);
-                if (args.Count == 1 && args[0] is ErrorObject) return args[0];
+                if (args.Length == 1 && args[0] is ErrorObject) return args[0];
 
                 return ApplyFunction(function, args);
             }
@@ -73,7 +76,7 @@ public class Evaluator
             case ArrayLiteral arrayLiteral:
             {
                 var elements = EvalExpressions(arrayLiteral.Elements, environment);
-                if (elements.Count == 1 && elements[0] is ErrorObject) return elements[0];
+                if (elements.Length == 1 && elements[0] is ErrorObject) return elements[0];
                 return new ArrayObject(elements);
             }
             case IndexExpression indexExpression:
@@ -109,6 +112,7 @@ public class Evaluator
         return new HashObject(pairs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalIndexExpression(IObject left, IObject index)
     {
         if (left is ArrayObject arrayObject && index is IntegerObject integerObject)
@@ -119,6 +123,7 @@ public class Evaluator
         return new ErrorObject($"index operator not supported: {left.Type}");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalHashIndexExpression(HashObject hashObject, IObject index)
     {
         if (index is not IHashableObject hashKey)
@@ -129,6 +134,7 @@ public class Evaluator
         return pair.Value;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalArrayIndexExpression(ArrayObject arrayObject, IntegerObject integerObject)
     {
         var max = arrayObject.Elements.Count - 1;
@@ -137,7 +143,7 @@ public class Evaluator
         return arrayObject.Elements[(int) integerObject.Value];
     }
 
-    private IObject ApplyFunction(IObject function, List<IObject> args)
+    private IObject ApplyFunction(IObject function, IReadOnlyList<IObject> args)
     {
         switch (function)
         {
@@ -157,26 +163,35 @@ public class Evaluator
         return new ErrorObject($"not a function: {function.Type}");
     }
 
-    private static Environment ExtendFunctionEnv(FunctionObject functionObject, List<IObject> args)
+    private static Environment ExtendFunctionEnv(FunctionObject functionObject, IReadOnlyList<IObject> args)
     {
-        var env = new Environment(functionObject.Environment);
+        var env = new Environment(functionObject.Environment, args.Count);
         for (var i = 0; i < functionObject.Parameters.Count; i++)
             env.Set(functionObject.Parameters[i].Value, args[i]);
         return env;
     }
 
-    private List<IObject> EvalExpressions(IReadOnlyList<Expression> callExpressionArguments,
+    private IObject[] EvalExpressions(IReadOnlyList<Expression> callExpressionArguments,
         Environment environment)
     {
-        var result = new List<IObject>(callExpressionArguments.Count);
+        var result = ArrayPool<IObject>.Shared.Rent(callExpressionArguments.Count);
+        var actualCount = 0;
         foreach (var expression in callExpressionArguments)
         {
             var evaluated = Eval(expression, environment);
-            if (evaluated is ErrorObject) return [evaluated];
-            result.Add(evaluated);
+            if (evaluated is ErrorObject)
+            {
+                ArrayPool<IObject>.Shared.Return(result);
+                return [evaluated];
+            }
+
+            result[actualCount++] = evaluated;
         }
 
-        return result;
+        var final = new IObject[actualCount];
+        Array.Copy(result, final, actualCount);
+        ArrayPool<IObject>.Shared.Return(result);
+        return final;
     }
 
     private static IObject EvalIdentifier(Identifier identifier, Environment environment)
@@ -222,13 +237,15 @@ public class Evaluator
         return NullObject.Null;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsTruthy(IObject obj)
     {
         if (obj == NullObject.Null) return false;
-        if (obj == BooleanObject.False) return false;
+        if (obj is BooleanObject b && b == BooleanObject.False) return false;
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalInfixExpression(IObject left, string @operator, IObject right)
     {
         if (left is IntegerObject leftInteger && right is IntegerObject rightInteger)
@@ -245,6 +262,7 @@ public class Evaluator
             $"unknown operator: {left.Type} {@operator} {right.Type}");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalStringInfixOperator(StringObject leftString, string @operator, StringObject rightString)
     {
         if (@operator == "+")
@@ -256,19 +274,20 @@ public class Evaluator
         return new ErrorObject($"unknown operator: STRING {@operator} STRING");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalIntegerInfixOperator(IntegerObject leftInteger, string @operator,
         IntegerObject rightInteger)
     {
         switch (@operator)
         {
             case "+":
-                return new IntegerObject(leftInteger.Value + rightInteger.Value);
+                return IntegerObject.Create(leftInteger.Value + rightInteger.Value);
             case "-":
-                return new IntegerObject(leftInteger.Value - rightInteger.Value);
+                return IntegerObject.Create(leftInteger.Value - rightInteger.Value);
             case "*":
-                return new IntegerObject(leftInteger.Value * rightInteger.Value);
+                return IntegerObject.Create(leftInteger.Value * rightInteger.Value);
             case "/":
-                return new IntegerObject(leftInteger.Value / rightInteger.Value);
+                return IntegerObject.Create(leftInteger.Value / rightInteger.Value);
             case "<":
                 return leftInteger.Value < rightInteger.Value ? BooleanObject.True : BooleanObject.False;
             case ">":
@@ -282,6 +301,7 @@ public class Evaluator
         return new ErrorObject($"unknown operator: INTEGER {@operator} INTEGER");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalBooleanInfixOperator(BooleanObject leftBoolean, string @operator,
         BooleanObject rightBoolean)
     {
@@ -296,6 +316,7 @@ public class Evaluator
         return new ErrorObject($"unknown operator: BOOLEAN {@operator} BOOLEAN");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalPrefixExpression(string @operator, IObject right)
     {
         switch (@operator)
@@ -309,17 +330,23 @@ public class Evaluator
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IObject EvalMinusPrefixOperator(IObject right)
     {
         if (right is not IntegerObject integer)
             return new ErrorObject($"unknown operator: -{right.Type}");
-        return new IntegerObject(-integer.Value);
+        return IntegerObject.Create(-integer.Value);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BooleanObject EvalBangOperator(IObject right)
     {
-        if (right == BooleanObject.True) return BooleanObject.False;
-        if (right == BooleanObject.False) return BooleanObject.True;
+        if (right is BooleanObject b)
+        {
+            if (b == BooleanObject.True) return BooleanObject.False;
+            if (b == BooleanObject.False) return BooleanObject.True;
+        }
+
         if (right == NullObject.Null) return BooleanObject.True;
         return BooleanObject.False;
     }
