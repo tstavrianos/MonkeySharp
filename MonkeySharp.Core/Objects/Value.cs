@@ -25,6 +25,47 @@ public enum ValueKind
     Closure
 }
 
+// Dedicated classes to avoid tuple boxing
+public sealed class CompiledFunctionData
+{
+    public byte[] Instructions { get; }
+    public int NumLocals { get; }
+    public int NumParameters { get; }
+
+    internal CompiledFunctionData(byte[] instructions, int numLocals, int numParameters)
+    {
+        Instructions = instructions;
+        NumLocals = numLocals;
+        NumParameters = numParameters;
+    }
+}
+
+public sealed class ClosureData
+{
+    public Value Function { get; }
+    public Value[] Free { get; }
+
+    internal ClosureData(Value function, Value[] free)
+    {
+        Function = function;
+        Free = free;
+    }
+}
+
+public sealed class FunctionData
+{
+    public IReadOnlyList<Identifier> Parameters { get; }
+    public BlockStatement Body { get; }
+    public Environment Environment { get; }
+
+    internal FunctionData(IReadOnlyList<Identifier> parameters, BlockStatement body, Environment environment)
+    {
+        Parameters = parameters;
+        Body = body;
+        Environment = environment;
+    }
+}
+
 public readonly struct Value : IEquatable<Value>
 {
     public static readonly Value NullValue = Null();
@@ -122,7 +163,7 @@ public readonly struct Value : IEquatable<Value>
     public static Value Function(IReadOnlyList<Identifier> parameters, BlockStatement body,
         Environment environment)
     {
-        return new Value(ValueKind.Function, 0, (parameters, body, environment));
+        return new Value(ValueKind.Function, 0, new FunctionData(parameters, body, environment));
     }
 
     public static Value Builtin(Func<IReadOnlyList<Value>, Value> function)
@@ -137,12 +178,13 @@ public readonly struct Value : IEquatable<Value>
 
     public static Value CompiledFunction(byte[] instructions, int numLocals, int numParameters)
     {
-        return new Value(ValueKind.CompiledFunction, 0, (instructions, numLocals, numParameters));
+        return new Value(ValueKind.CompiledFunction, 0,
+            new CompiledFunctionData(instructions, numLocals, numParameters));
     }
 
     public static Value Closure(Value compiledFunction, Value[] freeVariables)
     {
-        return new Value(ValueKind.Closure, 0, (compiledFunction, freeVariables));
+        return new Value(ValueKind.Closure, 0, new ClosureData(compiledFunction, freeVariables));
     }
 
     // Basic value accessors
@@ -172,16 +214,14 @@ public readonly struct Value : IEquatable<Value>
         get => _kind;
     }
 
-    // Complex value accessors
+    // Complex value accessors - now returning dedicated classes instead of tuples
     public List<Value> ArrayElements => _kind == ValueKind.Array ? (List<Value>) _objValue : null;
 
     public Dictionary<HashKey, (Value Key, Value Value)> HashPairs =>
         _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>) _objValue : null;
 
-    public (IReadOnlyList<Identifier> Parameters, BlockStatement Body, Environment Environment) FunctionData =>
-        _kind == ValueKind.Function
-            ? ((IReadOnlyList<Identifier>, BlockStatement, Environment)) _objValue
-            : default;
+    public FunctionData FunctionData =>
+        _kind == ValueKind.Function ? (FunctionData) _objValue : null;
 
     public Func<IReadOnlyList<Value>, Value> BuiltinFunction =>
         _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>) _objValue : null;
@@ -189,11 +229,11 @@ public readonly struct Value : IEquatable<Value>
     public Value InnerReturnValue =>
         _kind == ValueKind.ReturnValue ? (Value) _objValue : default;
 
-    public (byte[] Instructions, int NumLocals, int NumParameters) CompiledFunctionData =>
-        _kind == ValueKind.CompiledFunction ? ((byte[], int, int)) _objValue : default;
+    public CompiledFunctionData CompiledFunctionData =>
+        _kind == ValueKind.CompiledFunction ? (CompiledFunctionData) _objValue : null;
 
-    public (Value Function, Value[] Free) ClosureData =>
-        _kind == ValueKind.Closure ? ((Value, Value[])) _objValue : default;
+    public ClosureData ClosureData =>
+        _kind == ValueKind.Closure ? (ClosureData) _objValue : null;
 
     // Helper methods for type checking
     public bool IsInteger
@@ -303,7 +343,7 @@ public readonly struct Value : IEquatable<Value>
         get
         {
             var data = FunctionData;
-            if (data.Parameters == null)
+            if (data?.Parameters == null)
                 return "fn() {}";
 
             var buffer = new System.Text.StringBuilder();
@@ -346,10 +386,9 @@ public readonly struct Value : IEquatable<Value>
         const ulong prime = 0x00000100000001B3UL;
 
         var hash = basis;
-        var byteData = System.Text.Encoding.ASCII.GetBytes(value);
-        foreach (var b in byteData)
+        foreach (var c in value)
         {
-            hash ^= b;
+            hash ^= c;
             hash *= prime;
         }
 

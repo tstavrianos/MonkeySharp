@@ -167,8 +167,7 @@ public class Evaluator
         return Value.Error($"not a function: {function.Type}");
     }
 
-    private static Environment ExtendFunctionEnv(
-        (IReadOnlyList<Identifier> Parameters, BlockStatement Body, Environment Environment) functionData,
+    private static Environment ExtendFunctionEnv(FunctionData functionData,
         IReadOnlyList<Value> args)
     {
         var env = new Environment(functionData.Environment, args.Count);
