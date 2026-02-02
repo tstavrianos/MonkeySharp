@@ -4,10 +4,9 @@ using MonkeySharp.Core;
 using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Interpreter;
 using MonkeySharp.Core.VirtualMachine;
-using Environment = MonkeySharp.Core.Interpreter.Environment;
 using BenchmarkDotNet.Jobs;
 using Microsoft.VSDiagnostics;
-using MonkeySharp.Core.Objects;
+using Environment = MonkeySharp.Core.Interpreter.Environment;
 
 namespace MonkeySharp.Benchmarks;
 
@@ -54,10 +53,8 @@ fibonacci(20);";
 
     //private ProgramNode _programOptimized;
     private ByteCode _byteCode;
-    private ValueByteCode _valueByteCode;
 
     //private ByteCode _byteCodeOptimized;
-    private Func<object> _function;
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -67,14 +64,9 @@ fibonacci(20);";
         _program = parser.ParseProgram();
         //var optimizer = new Optimizer();
         //_programOptimized = optimizer.Optimize(_program);
-        var compiler = new Compiler();
-        compiler.Compile(_program);
-        _byteCode = compiler.ByteCode();
-        var ilCompiler = new ILCompiler();
-        _function = ilCompiler.CompileProgram(_program);
-        var valueCompiler = new ValueCompiler();
+        var valueCompiler = new Compiler();
         valueCompiler.Compile(_program);
-        _valueByteCode = valueCompiler.ByteCode();
+        _byteCode = valueCompiler.ByteCode();
 
         //var compilerOptimized = new Compiler();
         //compilerOptimized.Compile(_programOptimized);
@@ -94,42 +86,8 @@ fibonacci(20);";
     {
         var evaluator = new Evaluator();
         var result = evaluator.Eval(_program, new Environment());
-        if (result is not IntegerObject i) return long.MinValue;
-        return i.Value;
-    }
-
-    [Benchmark]
-    [BenchmarkCategory(Categories.Value)]
-    [BenchmarkCategory(Categories.Evaluator)]
-    public long BenchmarkValueEvaluator()
-    {
-        var evaluator = new ValueEvaluator();
-        var result = evaluator.Eval(_program, new ValueEnvironment());
         if (!result.IsInteger) return long.MinValue;
         return result.IntValue;
-    }
-
-    [Benchmark]
-    [BenchmarkCategory(Categories.Visitor)]
-    [BenchmarkCategory(Categories.Evaluator)]
-    public long BenchmarkVisitorEvaluator()
-    {
-        var evaluator = new VisitorEvaluator(false);
-        var result = evaluator.Eval(_program, new Environment());
-        if (result is not IntegerObject i) return long.MinValue;
-        return i.Value;
-    }
-
-    [Benchmark]
-    [BenchmarkCategory(Categories.Visitor)]
-    [BenchmarkCategory(Categories.Evaluator)]
-    [BenchmarkCategory(Categories.StaticDispatch)]
-    public long BenchmarkVisitorEvaluator_StaticDispatch()
-    {
-        var evaluator = new VisitorEvaluator();
-        var result = evaluator.Eval(_program, new Environment());
-        if (result is not IntegerObject i) return long.MinValue;
-        return i.Value;
     }
 
     [Benchmark]
@@ -139,30 +97,9 @@ fibonacci(20);";
         var vm = new Vm(_byteCode);
         vm.Run();
         var result = vm.LastPoppedStackElement;
-        if (result is not IntegerObject i) return long.MinValue;
-        return i.Value;
-    }
-
-    [Benchmark]
-    [BenchmarkCategory(Categories.Vm)]
-    [BenchmarkCategory(Categories.Value)]
-    public long BenchmarkValueVm()
-    {
-        var vm = new ValueVm(_valueByteCode);
-        vm.Run();
-        var result = vm.LastPoppedStackElement;
         if (!result.IsInteger) return long.MinValue;
         return result.IntValue;
     }
-
-    /*[Benchmark]
-    [BenchmarkCategory(Categories.IL)]
-    public long BenchmarkIL()
-    {
-        var result = _function();
-        if (result is not IntegerObject i) return long.MinValue;
-        return i.Value;
-    }*/
 
     /*[Benchmark]
     [BenchmarkCategory(Categories.Evaluator)]

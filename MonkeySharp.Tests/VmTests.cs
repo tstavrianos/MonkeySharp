@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.Core.Ast;
 using MonkeySharp.Core.Objects;
 using MonkeySharp.Core.VirtualMachine;
 using NUnit.Framework;
@@ -78,13 +77,13 @@ public class VmTests
         {
             "{1:2,2:3}",
             new Dictionary<HashKey, object>
-                {{new IntegerObject(1).HashKey(), 2}, {new IntegerObject(2).HashKey(), 3}}
+                {{Value.Integer(1).GetHashKey(), 2}, {Value.Integer(2).GetHashKey(), 3}}
         },
         new object[]
         {
             "{1+1:2*2,3+3:4*4}",
             new Dictionary<HashKey, object>
-                {{new IntegerObject(2).HashKey(), 4}, {new IntegerObject(6).HashKey(), 16}}
+                {{Value.Integer(2).GetHashKey(), 4}, {Value.Integer(6).GetHashKey(), 16}}
         },
         new object[] {"[1, 2, 3][1]", 2},
         new object[] {"[1, 2, 3][0 + 2]", 3},
@@ -203,6 +202,7 @@ public class VmTests
         }
     ];
 
+
     [Test]
     [TestCaseSource(nameof(VmTestCases))]
     public void RunVmTests(string input, object expected)
@@ -212,14 +212,6 @@ public class VmTests
         if (program == null)
         {
             Assert.Fail("ParseProgram() returned nil");
-            return;
-        }
-
-        var optimizer = new Optimizer();
-        program = optimizer.Optimize(program);
-        if (program == null)
-        {
-            Assert.Fail("optimizer.Optimize returned nil");
             return;
         }
 
@@ -240,75 +232,7 @@ public class VmTests
         }
 
         var stackElement = vm.LastPoppedStackElement;
-        if (!TestCommon.TestObject(stackElement, expected, out err))
-        {
-            Assert.Fail(err);
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(VmTestCases))]
-    public void RunValueVmTests(string input, object expected)
-    {
-        var program = TestCommon.Parse(input);
-
-        if (program == null)
-        {
-            Assert.Fail("ParseProgram() returned nil");
-            return;
-        }
-
-        var comp = new ValueCompiler();
-        var err = comp.Compile(program);
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"compiler error: {err}");
-            return;
-        }
-
-        var vm = new ValueVm(comp.ByteCode());
-        err = vm.Run();
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"vm error: {err}");
-            return;
-        }
-
-        var stackElement = vm.LastPoppedStackElement;
         if (!TestCommon.TestValue(stackElement, expected, out err))
-        {
-            Assert.Fail(err);
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(VmTestCases))]
-    public void RunILTests(string input, object expected)
-    {
-        var program = TestCommon.Parse(input);
-
-        if (program == null)
-        {
-            Assert.Fail("ParseProgram() returned nil");
-            return;
-        }
-
-        var compiler = new ILCompiler();
-        var executable = compiler.CompileProgram(program);
-        var result = executable(); // Returns IntegerObject(15)
-        if (result is not IObject stackElement)
-        {
-            Assert.Fail($"Unknown type returned: {result.GetType()}");
-            return;
-        }
-
-        if (!TestCommon.TestObject(stackElement, expected, out var err))
         {
             Assert.Fail(err);
             return;
@@ -350,37 +274,6 @@ public class VmTests
         }
 
         var vm = new Vm(comp.ByteCode());
-        err = vm.Run();
-        if (err != expected)
-        {
-            Assert.Fail($"wrong VM error: want={expected}, got={err}");
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(VmTestsErrorCases))]
-    public void ValueVmTestsError(string input, string expected)
-    {
-        var program = TestCommon.Parse(input);
-
-        if (program == null)
-        {
-            Assert.Fail("ParseProgram() returned nil");
-            return;
-        }
-
-        var comp = new ValueCompiler();
-        var err = comp.Compile(program);
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"compiler error: {err}");
-            return;
-        }
-
-        var vm = new ValueVm(comp.ByteCode());
         err = vm.Run();
         if (err != expected)
         {

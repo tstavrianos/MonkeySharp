@@ -737,23 +737,7 @@ public class CompilerTests
         }
     ];
 
-    private static bool TestConstants(object[] expected, IReadOnlyList<IObject> actual, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (actual.Count != expected.Length)
-        {
-            errorMessage = $"wrong number of constants. want={expected.Length}, got={actual.Count}";
-            return false;
-        }
-
-        for (var i = 0; i < expected.Length; i++)
-            if (!TestCommon.TestObject(actual[i], expected[i], out errorMessage))
-                return false;
-
-        return true;
-    }
-
-    private static bool TestValueConstants(object[] expected, IReadOnlyList<Value> actual, out string errorMessage)
+    private static bool TestConstants(object[] expected, IReadOnlyList<Value> actual, out string errorMessage)
     {
         errorMessage = string.Empty;
         if (actual.Count != expected.Length)
@@ -768,6 +752,7 @@ public class CompilerTests
 
         return true;
     }
+
 
     [Test]
     [TestCaseSource(nameof(TestCompilerConstantCases))]
@@ -791,36 +776,6 @@ public class CompilerTests
         }
 
         if (!TestConstants(expectedConstants, bytecode.Constants, out err))
-        {
-            Assert.Fail(err);
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(TestCompilerConstantCases))]
-    public void TestValueCompilerConstant(string input, object[] expectedConstants, byte[][] expectedInstructions)
-    {
-        var program = TestCommon.Parse(input);
-        var compiler = new ValueCompiler();
-        var err = compiler.Compile(program);
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"compiler error: {err}");
-            return;
-        }
-
-        var bytecode = compiler.ByteCode();
-
-        if (!TestCommon.TestInstructions(expectedInstructions, bytecode.Instructions, out err))
-        {
-            Assert.Fail(err);
-            return;
-        }
-
-        if (!TestValueConstants(expectedConstants, bytecode.Constants, out err))
         {
             Assert.Fail(err);
             return;

@@ -1,4 +1,4 @@
-﻿using MonkeySharp.Core.Objects;
+using MonkeySharp.Core.Objects;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
@@ -13,9 +13,9 @@ public class Vm
     public const int GlobalsSize = 65536;
     private const int MaxFrames = 1024;
 
-    private readonly IObject[] _constants;
-    private readonly IObject[] _stack = new IObject[StackSize];
-    private readonly IObject[] _globals = new IObject[GlobalsSize];
+    private readonly Value[] _constants;
+    private readonly Value[] _stack = new Value[StackSize];
+    private readonly Value[] _globals = new Value[GlobalsSize];
     private int _sp;
 
     private readonly Frame[] _frames = new Frame[MaxFrames];
@@ -23,14 +23,14 @@ public class Vm
 
     public Vm(ByteCode bytecode)
     {
-        var function = new CompiledFunctionObject(bytecode.Instructions, 0, 0);
-        var closure = new ClosureObject(function, []);
+        var function = Value.CompiledFunction(bytecode.Instructions, 0, 0);
+        var closure = Value.Closure(function, []);
         PushFrame(new Frame(closure, 0));
         _constants = bytecode.Constants;
         _sp = 0;
     }
 
-    public Vm(ByteCode bytecode, IObject[] s) : this(bytecode)
+    public Vm(ByteCode bytecode, Value[] s) : this(bytecode)
     {
         Array.Copy(s, _globals, s.Length);
     }
@@ -53,7 +53,7 @@ public class Vm
         return _frames[--_frameIndex];
     }
 
-    public IObject LastPoppedStackElement { get; private set; }
+    public Value LastPoppedStackElement { get; private set; }
 
     public string Run()
     {
@@ -63,7 +63,6 @@ public class Vm
         {
             currentFrame.Ip++;
             var ip = currentFrame.Ip;
-            //var ins = currentFrame.Instructions();
             var op = (OpCode) ins[ip];
             switch (op)
             {
@@ -80,6 +79,9 @@ public class Vm
                 case OpCode.Subtract:
                 case OpCode.Multiply:
                 case OpCode.Divide:
+                case OpCode.Equal:
+                case OpCode.NotEqual:
+                case OpCode.GreaterThan:
                 {
                     var err = ExecuteBinaryOperation(op);
                     if (!string.IsNullOrEmpty(err)) return err;
@@ -90,33 +92,20 @@ public class Vm
                     break;
                 case OpCode.True:
                 {
-                    var err = Push(BooleanObject.True);
+                    var err = Push(Value.Boolean(true));
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
                 case OpCode.False:
                 {
-                    var err = Push(BooleanObject.False);
-                    if (!string.IsNullOrEmpty(err)) return err;
-                    break;
-                }
-                case OpCode.Equal:
-                case OpCode.NotEqual:
-                case OpCode.GreaterThan:
-                {
-                    var err = ExecuteComparison(op);
+                    var err = Push(Value.Boolean(false));
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
                 case OpCode.Bang:
-                {
-                    var err = ExecuteBangOperator();
-                    if (!string.IsNullOrEmpty(err)) return err;
-                    break;
-                }
                 case OpCode.Minus:
                 {
-                    var err = ExecuteMinusOperator();
+                    var err = ExecutePrefixOperation(op);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -131,12 +120,12 @@ public class Vm
                     var pos = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
                     currentFrame.Ip += 2;
                     var condition = Pop();
-                    if (!IsTruthy(condition)) currentFrame.Ip = pos - 1;
+                    if (!condition.IsTruthy()) currentFrame.Ip = pos - 1;
                     break;
                 }
                 case OpCode.Null:
                 {
-                    var err = Push(NullObject.Null);
+                    var err = Push(Value.Null());
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -211,7 +200,7 @@ public class Vm
                     currentFrame = CurrentFrame();
                     ins = currentFrame.Instructions().AsSpan();
                     _sp = frame.BasePointer - 1;
-                    var err = Push(NullObject.Null);
+                    var err = Push(Value.Null());
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -255,7 +244,7 @@ public class Vm
                     var freeIndex = ins[ip + 1];
                     currentFrame.Ip += 1;
                     var currentClosure = currentFrame.Closure;
-                    var err = Push(currentClosure.Free[freeIndex]);
+                    var err = Push(currentClosure.ClosureData.Free[freeIndex]);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -275,187 +264,109 @@ public class Vm
     private string PushClosure(ushort constantIndex, byte numFree)
     {
         var constant = _constants[constantIndex];
-        if (constant is not CompiledFunctionObject function) return $"not a function: {constant.GetType().Name}";
-        var free = new IObject[numFree];
+        if (!constant.IsCompiledFunction) return $"not a function: {constant.Type}";
+        var free = new Value[numFree];
         for (var i = 0; i < numFree; i++) free[i] = _stack[_sp - (numFree - i)];
-        var closure = new ClosureObject(function, free);
+        _sp = _sp - numFree;
+        var closure = Value.Closure(constant, free);
         return Push(closure);
     }
 
     private string ExecuteCall(int numArgs)
     {
         var callee = _stack[_sp - 1 - numArgs];
-        switch (callee)
-        {
-            case ClosureObject closure:
-                return CallClosure(closure, numArgs);
-            case BuiltinObject builtinObject:
-                return CallBuiltin(builtinObject, numArgs);
-            default:
-                return "calling a non-function and non-built-in";
-        }
+        if (callee.IsClosure)
+            return CallClosure(callee, numArgs);
+        if (callee.IsBuiltin)
+            return CallBuiltin(callee, numArgs);
+        return "calling a non-function and non-built-in";
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string CallClosure(ClosureObject closure, int numArgs)
+    private string CallClosure(Value closure, int numArgs)
     {
-        if (closure.Function.NumParameters != numArgs)
-            return $"wrong number of arguments. want={closure.Function.NumParameters}, got={numArgs}";
+        var closureData = closure.ClosureData;
+        var functionData = closureData.Function.CompiledFunctionData;
+        if (functionData.NumParameters != numArgs)
+            return $"wrong number of arguments. want={functionData.NumParameters}, got={numArgs}";
         var frame = new Frame(closure, _sp - numArgs);
         PushFrame(frame);
-        _sp = frame.BasePointer + closure.Function.NumLocals;
+        _sp = frame.BasePointer + functionData.NumLocals;
         return null;
     }
 
-    private string CallBuiltin(BuiltinObject builtinObject, int numArgs)
+    private string CallBuiltin(Value builtinValue, int numArgs)
     {
         var args = _stack[(_sp - numArgs).._sp];
-        var result = builtinObject.Function(args);
+        var result = builtinValue.BuiltinFunction(args);
         _sp = _sp - numArgs - 1;
-        if (result != null)
-        {
-            if (result is ErrorObject error) return error.Message;
-            Push(result);
-        }
-        else
-        {
-            Push(NullObject.Null);
-        }
-
+        if (result.IsError) return result.ErrorMessage;
+        Push(result.IsNull ? Value.Null() : result);
         return null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteIndexExpression(IObject left, IObject index)
+    private string ExecuteIndexExpression(Value left, Value index)
     {
-        if (left is ArrayObject arrayLeft && index is IntegerObject integerIndex)
-            return ExecuteArrayIndex(arrayLeft, integerIndex);
-        if (left is HashObject hashLeft)
-            return ExecuteHashIndex(hashLeft, index);
-        return $"index operator not supported: {left.GetType().Name}";
+        if (left.IsArray && index.IsInteger)
+            return ExecuteArrayIndex(left, index);
+        if (left.IsHash)
+            return ExecuteHashIndex(left, index);
+        return $"index operator not supported: {left.Type}";
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteHashIndex(HashObject hashLeft, IObject index)
+    private string ExecuteHashIndex(Value hashLeft, Value index)
     {
-        if (index is not IHashableObject hashable) return $"unusable as hash key: {index.GetType().Name}";
-        if (!hashLeft.Pairs.TryGetValue(hashable.HashKey(), out var pair))
-            return Push(NullObject.Null);
+        if (!index.IsHashable) return $"unusable as hash key: {index.Type}";
+        var hashKey = index.GetHashKey();
+        if (!hashLeft.HashPairs.TryGetValue(hashKey, out var pair))
+            return Push(Value.Null());
         return Push(pair.Value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteArrayIndex(ArrayObject arrayLeft, IntegerObject integerIndex)
+    private string ExecuteArrayIndex(Value arrayLeft, Value integerIndex)
     {
-        var i = (int) integerIndex.Value;
-        var max = arrayLeft.Elements.Count - 1;
-        if (i < 0 || i > max) return Push(NullObject.Null);
-        return Push(arrayLeft.Elements[i]);
+        var i = (int) integerIndex.IntValue;
+        var elements = arrayLeft.ArrayElements;
+        var max = elements.Count - 1;
+        if (i < 0 || i > max) return Push(Value.Null());
+        return Push(elements[i]);
     }
 
-    private (HashObject hash, string err) BuildHash(int startIndex, int endIndex)
+    private (Value hash, string err) BuildHash(int startIndex, int endIndex)
     {
-        var hashedPairs = new Dictionary<HashKey, (IHashableObject Key, IObject Value)>(endIndex - startIndex);
+        var hashedPairs = new Dictionary<HashKey, (Value Key, Value Value)>(endIndex - startIndex);
 
         for (var i = startIndex; i < endIndex; i += 2)
         {
             var key = _stack[i];
             var value = _stack[i + 1];
 
-            if (key is not IHashableObject hashable) return (null, $"unusable as hash key: {key.Type}");
+            if (!key.IsHashable) return (default, $"unusable as hash key: {key.Type}");
 
-            hashedPairs.Add(hashable.HashKey(), (hashable, value));
+            hashedPairs.Add(key.GetHashKey(), (key, value));
         }
 
-        return (new HashObject(hashedPairs), null);
+        return (Value.Hash(hashedPairs), null);
     }
 
-    private ArrayObject BuildArray(int startIndex, int endIndex)
+    private Value BuildArray(int startIndex, int endIndex)
     {
-        var elements = new List<IObject>(endIndex - startIndex);
+        var elements = new List<Value>(endIndex - startIndex);
         for (var i = startIndex; i < endIndex; i++)
             elements.Add(_stack[i]);
-        return new ArrayObject(elements);
+        return Value.Array(elements);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsTruthy(IObject o)
+    private string ExecutePrefixOperation(OpCode op)
     {
-        if (o == NullObject.Null) return false;
-        if (o is BooleanObject b && b == BooleanObject.False) return false;
-        return true;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteMinusOperator()
-    {
-        var op = Pop();
-        switch (op)
-        {
-            case IntegerObject i:
-                return Push(IntegerObject.Create(-i.Value));
-            default:
-                return $"unsupported type for negation: {op.GetType().Name}";
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteBangOperator()
-    {
-        var op = Pop();
-        switch (op)
-        {
-            case BooleanObject b:
-                return Push(b.Value ? BooleanObject.False : BooleanObject.True);
-            case NullObject _:
-                return Push(BooleanObject.True);
-            default:
-                return Push(BooleanObject.False);
-        }
-    }
-
-    private string ExecuteComparison(OpCode op)
-    {
-        var right = Pop();
-        var left = Pop();
-
-        if (left is IntegerObject leftInt && right is IntegerObject rightInt)
-            return ExecuteIntegerComparison(leftInt, op, rightInt);
-
-        if (left is StringObject leftStr && right is StringObject rightStr)
-        {
-            if (op == OpCode.Equal)
-                return Push(leftStr.Value == rightStr.Value ? BooleanObject.True : BooleanObject.False);
-            if (op == OpCode.NotEqual)
-                return Push(leftStr.Value != rightStr.Value ? BooleanObject.True : BooleanObject.False);
-            return $"unknown operator: {op} (STRING)";
-        }
-
-        switch (op)
-        {
-            case OpCode.Equal:
-                return Push(right == left ? BooleanObject.True : BooleanObject.False);
-            case OpCode.NotEqual:
-                return Push(right != left ? BooleanObject.True : BooleanObject.False);
-            default:
-                return $"unknown operator: {op} ({left.GetType().Name} {right.GetType().Name})";
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteIntegerComparison(IntegerObject leftInt, OpCode op, IntegerObject rightInt)
-    {
-        switch (op)
-        {
-            case OpCode.Equal:
-                return Push(leftInt.Value == rightInt.Value ? BooleanObject.True : BooleanObject.False);
-            case OpCode.NotEqual:
-                return Push(leftInt.Value != rightInt.Value ? BooleanObject.True : BooleanObject.False);
-            case OpCode.GreaterThan:
-                return Push(leftInt.Value > rightInt.Value ? BooleanObject.True : BooleanObject.False);
-            default:
-                return $"unknown operator: {op}";
-        }
+        var operand = Pop();
+        var result = Value.VmPrefixOperation(op, operand);
+        if (result.IsError) return result.ErrorMessage;
+        return Push(result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -463,41 +374,13 @@ public class Vm
     {
         var right = Pop();
         var left = Pop();
-        if (left is IntegerObject leftInt && right is IntegerObject rightInt)
-            return ExecuteBinaryIntegerOperation(leftInt, op, rightInt);
-        if (left is StringObject leftStr && right is StringObject rightStr && op == OpCode.Add)
-            return Push(new StringObject(leftStr.Value + rightStr.Value));
-
-        return $"unsupported types for binary operation: {left.GetType().Name} {right.GetType().Name}";
+        var result = Value.VmInfixOperation(left, op, right);
+        if (result.IsError) return result.ErrorMessage;
+        return Push(result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteBinaryIntegerOperation(IntegerObject leftInt, OpCode op, IntegerObject rightInt)
-    {
-        long result;
-        switch (op)
-        {
-            case OpCode.Add:
-                result = leftInt.Value + rightInt.Value;
-                break;
-            case OpCode.Subtract:
-                result = leftInt.Value - rightInt.Value;
-                break;
-            case OpCode.Multiply:
-                result = leftInt.Value * rightInt.Value;
-                break;
-            case OpCode.Divide:
-                result = leftInt.Value / rightInt.Value;
-                break;
-            default:
-                return $"unknown integer operator: {op}";
-        }
-
-        return Push(IntegerObject.Create(result));
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string Push(IObject obj)
+    private string Push(Value obj)
     {
         if (_sp >= StackSize) return "stack overflow";
 
@@ -507,10 +390,9 @@ public class Vm
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private IObject Pop()
+    private Value Pop()
     {
         var o = _stack[_sp - 1];
-        //_stack[_sp - 1] = null;
         _sp--;
         LastPoppedStackElement = o;
         return o;

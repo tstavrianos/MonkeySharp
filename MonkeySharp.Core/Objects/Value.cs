@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Environment = MonkeySharp.Core.Interpreter.Environment;
 
 namespace MonkeySharp.Core.Objects;
 
@@ -116,7 +117,7 @@ public readonly struct Value : IEquatable<Value>
     }
 
     public static Value Function(IReadOnlyList<Identifier> parameters, BlockStatement body,
-        ValueEnvironment environment)
+        Environment environment)
     {
         return new Value(ValueKind.Function, 0, (parameters, body, environment));
     }
@@ -174,9 +175,9 @@ public readonly struct Value : IEquatable<Value>
     public Dictionary<HashKey, (Value Key, Value Value)> HashPairs =>
         _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>) _objValue : null;
 
-    public (IReadOnlyList<Identifier> Parameters, BlockStatement Body, ValueEnvironment Environment) FunctionData =>
+    public (IReadOnlyList<Identifier> Parameters, BlockStatement Body, Environment Environment) FunctionData =>
         _kind == ValueKind.Function
-            ? ((IReadOnlyList<Identifier>, BlockStatement, ValueEnvironment)) _objValue
+            ? ((IReadOnlyList<Identifier>, BlockStatement, Environment)) _objValue
             : default;
 
     public Func<IReadOnlyList<Value>, Value> BuiltinFunction =>
@@ -349,7 +350,7 @@ public readonly struct Value : IEquatable<Value>
             hash *= prime;
         }
 
-        return new HashKey(ObjectType.String, hash);
+        return new HashKey("STRING", hash);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

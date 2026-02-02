@@ -7,7 +7,6 @@ using MonkeySharp.Core.Interpreter;
 using MonkeySharp.Core.Objects;
 using MonkeySharp.Core.VirtualMachine;
 using NUnit.Framework;
-using Environment = MonkeySharp.Core.Interpreter.Environment;
 
 namespace MonkeySharp.Tests;
 
@@ -59,33 +58,13 @@ internal static class TestCommon
         return en.ToArray();
     }
 
-    internal static IObject Eval(string input)
+    internal static Value Eval(string input)
     {
         var env = new Environment();
         var l = new Lexer(input);
         var p = new Parser(l);
         var program = p.ParseProgram();
         var evaluator = new Evaluator();
-        return evaluator.Eval(program, env);
-    }
-
-    internal static Value ValueEval(string input)
-    {
-        var env = new ValueEnvironment();
-        var l = new Lexer(input);
-        var p = new Parser(l);
-        var program = p.ParseProgram();
-        var evaluator = new ValueEvaluator();
-        return evaluator.Eval(program, env);
-    }
-
-    internal static IObject VisitorEval(string input)
-    {
-        var env = new Environment();
-        var l = new Lexer(input);
-        var p = new Parser(l);
-        var program = p.ParseProgram();
-        var evaluator = new VisitorEvaluator();
         return evaluator.Eval(program, env);
     }
 
@@ -99,33 +78,6 @@ internal static class TestCommon
             sb.AppendLine($"parser error: {error}");
         errorMessage = sb.ToString();
         return false;
-    }
-
-    internal static bool TestObject(IObject obj, object expected, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (expected == null)
-            return TestNullObject(obj, out errorMessage);
-        switch (expected)
-        {
-            case long l:
-                return TestIntegerObject(obj, l, out errorMessage);
-            case int i:
-                return TestIntegerObject(obj, i, out errorMessage);
-            case bool b:
-                return TestBooleanObject(obj, b, out errorMessage);
-            case string s:
-                return TestStringObject(obj, s, out errorMessage);
-            case byte[][] instructions:
-                return TestCompiledFunctionObject(obj, instructions, out errorMessage);
-            case object[] o:
-                return TestArrayObject(obj, o, out errorMessage);
-            case IReadOnlyDictionary<HashKey, object> d:
-                return TestHashObject(obj, d, out errorMessage);
-            default:
-                errorMessage = $"type of object not handled. got={expected.GetType().Name}";
-                return false;
-        }
     }
 
     internal static bool TestValue(Value obj, object expected, out string errorMessage)
@@ -155,18 +107,6 @@ internal static class TestCommon
         }
     }
 
-    private static bool TestCompiledFunctionObject(IObject obj, byte[][] instructions, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not CompiledFunctionObject o)
-        {
-            errorMessage = $"object is not CompiledFunctionObject. got={obj.Type}";
-            return false;
-        }
-
-        return TestInstructions(instructions, o.Instructions, out errorMessage);
-    }
-
     private static bool TestCompiledFunctionValue(Value obj, byte[][] instructions, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -179,18 +119,6 @@ internal static class TestCommon
         return TestInstructions(instructions, obj.CompiledFunctionData.Instructions, out errorMessage);
     }
 
-    private static bool TestNullObject(IObject obj, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not NullObject)
-        {
-            errorMessage = $"object is not NullObject. got={obj.GetType()}";
-            return false;
-        }
-
-        return true;
-    }
-
     private static bool TestNullValue(Value obj, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -199,29 +127,6 @@ internal static class TestCommon
             errorMessage = $"object is not NullObject. got={obj.Type}";
             return false;
         }
-
-        return true;
-    }
-
-    private static bool TestHashObject(IObject obj, IReadOnlyDictionary<HashKey, object> dictionary,
-        out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not HashObject o)
-        {
-            errorMessage = $"object is not HashObject. got={obj.Type}";
-            return false;
-        }
-
-        if (o.Pairs.Count != dictionary.Count)
-        {
-            errorMessage = $"wrong num of elements. want={dictionary.Count}, got={o.Pairs.Count}";
-            return false;
-        }
-
-        foreach (var (key, value) in dictionary)
-            if (!TestObject(o.Pairs[key].Value, value, out errorMessage))
-                return false;
 
         return true;
     }
@@ -249,28 +154,6 @@ internal static class TestCommon
         return true;
     }
 
-    private static bool TestArrayObject(IObject obj, object[] objects, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not ArrayObject o)
-        {
-            errorMessage = $"object is not ArrayObject. got={obj.Type}";
-            return false;
-        }
-
-        if (o.Elements.Count != objects.Length)
-        {
-            errorMessage = $"wrong num of elements. want={objects.Length}, got={o.Elements.Count}";
-            return false;
-        }
-
-        for (var i = 0; i < o.Elements.Count; i++)
-            if (!TestObject(o.Elements[i], objects[i], out errorMessage))
-                return false;
-
-        return true;
-    }
-
     private static bool TestArrayValue(Value obj, object[] objects, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -293,24 +176,6 @@ internal static class TestCommon
         return true;
     }
 
-    private static bool TestIntegerObject(IObject obj, long expected, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not IntegerObject integerObject)
-        {
-            errorMessage = $"object is not IntegerObject. got={obj.Type}";
-            return false;
-        }
-
-        if (integerObject.Value != expected)
-        {
-            errorMessage = $"object has wrong value. expected={expected}, got={integerObject.Value}";
-            return false;
-        }
-
-        return true;
-    }
-
     private static bool TestIntegerValue(Value obj, long expected, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -329,24 +194,6 @@ internal static class TestCommon
         return true;
     }
 
-    private static bool TestStringObject(IObject obj, string expected, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not StringObject stringObject)
-        {
-            errorMessage = $"object is not StringObject. got={obj.Type}";
-            return false;
-        }
-
-        if (stringObject.Value != expected)
-        {
-            errorMessage = $"object has wrong value. expected={expected}, got={stringObject.Value}";
-            return false;
-        }
-
-        return true;
-    }
-
     private static bool TestStringValue(Value obj, string expected, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -359,24 +206,6 @@ internal static class TestCommon
         if (obj.StringValue != expected)
         {
             errorMessage = $"object has wrong value. expected={expected}, got={obj.StringValue}";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TestBooleanObject(IObject obj, bool expected, out string errorMessage)
-    {
-        errorMessage = string.Empty;
-        if (obj is not BooleanObject booleanObject)
-        {
-            errorMessage = $"object is not BooleanObject. got={obj.Type}";
-            return false;
-        }
-
-        if (booleanObject.Value != expected)
-        {
-            errorMessage = $"object has wrong value. expected={expected}, got={booleanObject.Value}";
             return false;
         }
 

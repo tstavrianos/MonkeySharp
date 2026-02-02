@@ -1,5 +1,4 @@
-﻿using MonkeySharp.Core.Objects;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
 
@@ -109,20 +108,6 @@ addTwo(2);",
     public void TestEvalExpression(string input, object expected)
     {
         var evaluated = TestCommon.Eval(input);
-        if (!TestCommon.TestObject(evaluated, expected, out var errorMessage))
-        {
-            Assert.Fail(errorMessage);
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(TestEvalExpressionCases))]
-    public void TestEvalExpressionValue(string input, object expected)
-    {
-        var evaluated = TestCommon.ValueEval(input);
         if (!TestCommon.TestValue(evaluated, expected, out var errorMessage))
         {
             Assert.Fail(errorMessage);
@@ -154,43 +139,6 @@ return 1;
     public void TestErrorHandling(string input, string expected)
     {
         var evaluated = TestCommon.Eval(input);
-        if (evaluated is not ErrorObject errorObject)
-        {
-            Assert.Fail($"no error object returned. got={evaluated.Type}");
-            return;
-        }
-
-        if (errorObject.Message != expected)
-        {
-            Assert.Fail($"wrong error message. expected={expected}, got={errorObject.Message}");
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCase("5 + true;", "type mismatch: INTEGER + BOOLEAN")]
-    [TestCase("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN")]
-    [TestCase("-true", "unknown operator: -BOOLEAN")]
-    [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase(@"if (10 > 1) {
-if (10 > 1) {
-return true + false;
-}
-return 1;
-}", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("foobar", "identifier not found: foobar")]
-    [TestCase("\"foo\" - \"bar\"", "unknown operator: STRING - STRING")]
-    [TestCase("len(1)", "argument to 'len' not supported, got INTEGER")]
-    [TestCase("len(\"one\", \"two\")", "wrong number of arguments. want=1, got=2")]
-    [TestCase("999[1]", "index operator not supported: INTEGER")]
-    [TestCase("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION")]
-    public void TestErrorHandlingValue(string input, string expected)
-    {
-        var evaluated = TestCommon.ValueEval(input);
         if (!evaluated.IsError)
         {
             Assert.Fail($"no error object returned. got={evaluated.Type}");
@@ -208,42 +156,9 @@ return 1;
 
     [Test]
     [TestCase("fn(x) { x + 2; }")]
-    public void TestFunctionObject(string input)
+    public void TestFunction(string input)
     {
         var evaluated = TestCommon.Eval(input);
-        if (evaluated is not FunctionObject functionObject)
-        {
-            Assert.Fail($"object is not FunctionObject. got={evaluated.Type}");
-            return;
-        }
-
-        if (functionObject.Parameters.Count != 1)
-        {
-            Assert.Fail($"wrong number of parameters. expected=1, got={functionObject.Parameters.Count}");
-            return;
-        }
-
-        if (functionObject.Parameters[0].ToString() != "x")
-        {
-            Assert.Fail($"parameter is not 'x'. got={functionObject.Parameters[0]}");
-            return;
-        }
-
-        var expectedBody = "(x + 2)";
-        if (functionObject.Body.ToString() != expectedBody)
-        {
-            Assert.Fail($"body is not {expectedBody}, got={functionObject.Body}");
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCase("fn(x) { x + 2; }")]
-    public void TestFunctionValue(string input)
-    {
-        var evaluated = TestCommon.ValueEval(input);
         if (!evaluated.IsFunction)
         {
             Assert.Fail($"object is not FunctionObject. got={evaluated.Type}");
@@ -266,90 +181,6 @@ return 1;
         if (evaluated.FunctionData.Body.ToString() != expectedBody)
         {
             Assert.Fail($"body is not {expectedBody}, got={evaluated.FunctionData.Body}");
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCaseSource(nameof(TestEvalExpressionCases))]
-    public void TestEvalExpressionVisitor(string input, object expected)
-    {
-        var evaluated = TestCommon.VisitorEval(input);
-        if (!TestCommon.TestObject(evaluated, expected, out var errorMessage))
-        {
-            Assert.Fail(errorMessage);
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCase("5 + true;", "type mismatch: INTEGER + BOOLEAN")]
-    [TestCase("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN")]
-    [TestCase("-true", "unknown operator: -BOOLEAN")]
-    [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase(@"if (10 > 1) {
-if (10 > 1) {
-return true + false;
-}
-return 1;
-}", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("foobar", "identifier not found: foobar")]
-    [TestCase("\"foo\" - \"bar\"", "unknown operator: STRING - STRING")]
-    [TestCase("len(1)", "argument to 'len' not supported, got INTEGER")]
-    [TestCase("len(\"one\", \"two\")", "wrong number of arguments. want=1, got=2")]
-    [TestCase("999[1]", "index operator not supported: INTEGER")]
-    [TestCase("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION")]
-    public void TestErrorHandlingVisitor(string input, string expected)
-    {
-        var evaluated = TestCommon.VisitorEval(input);
-        if (evaluated is not ErrorObject errorObject)
-        {
-            Assert.Fail($"no error object returned. got={evaluated.Type}");
-            return;
-        }
-
-        if (errorObject.Message != expected)
-        {
-            Assert.Fail($"wrong error message. expected={expected}, got={errorObject.Message}");
-            return;
-        }
-
-        Assert.Pass();
-    }
-
-    [Test]
-    [TestCase("fn(x) { x + 2; }")]
-    public void TestFunctionObjectVisitor(string input)
-    {
-        var evaluated = TestCommon.VisitorEval(input);
-        if (evaluated is not FunctionObject functionObject)
-        {
-            Assert.Fail($"object is not FunctionObject. got={evaluated.Type}");
-            return;
-        }
-
-        if (functionObject.Parameters.Count != 1)
-        {
-            Assert.Fail($"wrong number of parameters. expected=1, got={functionObject.Parameters.Count}");
-            return;
-        }
-
-        if (functionObject.Parameters[0].ToString() != "x")
-        {
-            Assert.Fail($"parameter is not 'x'. got={functionObject.Parameters[0]}");
-            return;
-        }
-
-        var expectedBody = "(x + 2)";
-        if (functionObject.Body.ToString() != expectedBody)
-        {
-            Assert.Fail($"body is not {expectedBody}, got={functionObject.Body}");
             return;
         }
 
