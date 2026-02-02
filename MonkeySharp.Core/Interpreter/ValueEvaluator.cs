@@ -238,16 +238,8 @@ public class ValueEvaluator
     {
         var condition = Eval(ifExpression.Condition, environment);
         if (condition.IsError) return condition;
-        if (IsTruthy(condition)) return Eval(ifExpression.Consequence, environment);
+        if (condition.IsTruthy()) return Eval(ifExpression.Consequence, environment);
         if (ifExpression.Alternative != null) return Eval(ifExpression.Alternative, environment);
         return Value.Null();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsTruthy(Value val)
-    {
-        if (val.IsNull) return false;
-        if (val.IsBoolean && !val.BooleanValue) return false;
-        return true;
     }
 }

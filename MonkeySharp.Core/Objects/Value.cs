@@ -381,8 +381,17 @@ public readonly struct Value : IEquatable<Value>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsTruthy()
+    {
+        if (IsNull) return false;
+        if (IsBoolean && !BooleanValue) return false;
+        return true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value EvaluatorInfixOperation(Value left, string op, Value right)
     {
+        if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
         if (op == "==") return Boolean(left == right);
         if (op == "!=") return Boolean(left != right);
         if (left.IsInteger && right.IsInteger)
@@ -400,7 +409,7 @@ public readonly struct Value : IEquatable<Value>
         if (left.IsString && right.IsString && op == "+")
             return String(left.StringValue + right.StringValue);
 
-        return Error($"type mismatch: {left.Type} {op} {right.Type}");
+        return Error($"unknown operator: {left.Type} {op} {right.Type}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -422,6 +431,7 @@ public readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value VmInfixOperation(Value left, OpCode op, Value right)
     {
+        if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
         if (op == OpCode.Equal) return Boolean(left == right);
         if (op == OpCode.NotEqual) return Boolean(left != right);
         if (left.IsInteger && right.IsInteger)
@@ -438,7 +448,7 @@ public readonly struct Value : IEquatable<Value>
         if (left.IsString && right.IsString && op == OpCode.Add)
             return String(left.StringValue + right.StringValue);
 
-        return Error($"type mismatch: {left.Type} {op} {right.Type}");
+        return Error($"unknown operator: {left.Type} {op} {right.Type}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

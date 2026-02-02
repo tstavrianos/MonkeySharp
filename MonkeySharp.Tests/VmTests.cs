@@ -251,6 +251,44 @@ public class VmTests
 
     [Test]
     [TestCaseSource(nameof(VmTestCases))]
+    public void RunValueVmTests(string input, object expected)
+    {
+        var program = TestCommon.Parse(input);
+
+        if (program == null)
+        {
+            Assert.Fail("ParseProgram() returned nil");
+            return;
+        }
+
+        var comp = new ValueCompiler();
+        var err = comp.Compile(program);
+        if (!string.IsNullOrEmpty(err))
+        {
+            Assert.Fail($"compiler error: {err}");
+            return;
+        }
+
+        var vm = new ValueVm(comp.ByteCode());
+        err = vm.Run();
+        if (!string.IsNullOrEmpty(err))
+        {
+            Assert.Fail($"vm error: {err}");
+            return;
+        }
+
+        var stackElement = vm.LastPoppedStackElement;
+        if (!TestCommon.TestValue(stackElement, expected, out err))
+        {
+            Assert.Fail(err);
+            return;
+        }
+
+        Assert.Pass();
+    }
+
+    [Test]
+    [TestCaseSource(nameof(VmTestCases))]
     public void RunILTests(string input, object expected)
     {
         var program = TestCommon.Parse(input);
@@ -312,6 +350,37 @@ public class VmTests
         }
 
         var vm = new Vm(comp.ByteCode());
+        err = vm.Run();
+        if (err != expected)
+        {
+            Assert.Fail($"wrong VM error: want={expected}, got={err}");
+            return;
+        }
+
+        Assert.Pass();
+    }
+
+    [Test]
+    [TestCaseSource(nameof(VmTestsErrorCases))]
+    public void ValueVmTestsError(string input, string expected)
+    {
+        var program = TestCommon.Parse(input);
+
+        if (program == null)
+        {
+            Assert.Fail("ParseProgram() returned nil");
+            return;
+        }
+
+        var comp = new ValueCompiler();
+        var err = comp.Compile(program);
+        if (!string.IsNullOrEmpty(err))
+        {
+            Assert.Fail($"compiler error: {err}");
+            return;
+        }
+
+        var vm = new ValueVm(comp.ByteCode());
         err = vm.Run();
         if (err != expected)
         {

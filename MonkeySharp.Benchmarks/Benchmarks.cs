@@ -54,6 +54,7 @@ fibonacci(20);";
 
     //private ProgramNode _programOptimized;
     private ByteCode _byteCode;
+    private ValueByteCode _valueByteCode;
 
     //private ByteCode _byteCodeOptimized;
     private Func<object> _function;
@@ -71,6 +72,9 @@ fibonacci(20);";
         _byteCode = compiler.ByteCode();
         var ilCompiler = new ILCompiler();
         _function = ilCompiler.CompileProgram(_program);
+        var valueCompiler = new ValueCompiler();
+        valueCompiler.Compile(_program);
+        _valueByteCode = valueCompiler.ByteCode();
 
         //var compilerOptimized = new Compiler();
         //compilerOptimized.Compile(_programOptimized);
@@ -95,7 +99,8 @@ fibonacci(20);";
     }
 
     [Benchmark]
-    [BenchmarkCategory(Categories.ValueEvaluator)]
+    [BenchmarkCategory(Categories.Value)]
+    [BenchmarkCategory(Categories.Evaluator)]
     public long BenchmarkValueEvaluator()
     {
         var evaluator = new ValueEvaluator();
@@ -105,7 +110,8 @@ fibonacci(20);";
     }
 
     [Benchmark]
-    [BenchmarkCategory(Categories.VisitorEvaluator)]
+    [BenchmarkCategory(Categories.Visitor)]
+    [BenchmarkCategory(Categories.Evaluator)]
     public long BenchmarkVisitorEvaluator()
     {
         var evaluator = new VisitorEvaluator(false);
@@ -115,7 +121,8 @@ fibonacci(20);";
     }
 
     [Benchmark]
-    [BenchmarkCategory(Categories.VisitorEvaluator)]
+    [BenchmarkCategory(Categories.Visitor)]
+    [BenchmarkCategory(Categories.Evaluator)]
     [BenchmarkCategory(Categories.StaticDispatch)]
     public long BenchmarkVisitorEvaluator_StaticDispatch()
     {
@@ -134,6 +141,18 @@ fibonacci(20);";
         var result = vm.LastPoppedStackElement;
         if (result is not IntegerObject i) return long.MinValue;
         return i.Value;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory(Categories.Vm)]
+    [BenchmarkCategory(Categories.Value)]
+    public long BenchmarkValueVm()
+    {
+        var vm = new ValueVm(_valueByteCode);
+        vm.Run();
+        var result = vm.LastPoppedStackElement;
+        if (!result.IsInteger) return long.MinValue;
+        return result.IntValue;
     }
 
     /*[Benchmark]

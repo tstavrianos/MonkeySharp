@@ -69,6 +69,16 @@ internal static class TestCommon
         return evaluator.Eval(program, env);
     }
 
+    internal static Value ValueEval(string input)
+    {
+        var env = new ValueEnvironment();
+        var l = new Lexer(input);
+        var p = new Parser(l);
+        var program = p.ParseProgram();
+        var evaluator = new ValueEvaluator();
+        return evaluator.Eval(program, env);
+    }
+
     internal static IObject VisitorEval(string input)
     {
         var env = new Environment();
@@ -118,6 +128,33 @@ internal static class TestCommon
         }
     }
 
+    internal static bool TestValue(Value obj, object expected, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (expected == null)
+            return TestNullValue(obj, out errorMessage);
+        switch (expected)
+        {
+            case long l:
+                return TestIntegerValue(obj, l, out errorMessage);
+            case int i:
+                return TestIntegerValue(obj, i, out errorMessage);
+            case bool b:
+                return TestBooleanValue(obj, b, out errorMessage);
+            case string s:
+                return TestStringValue(obj, s, out errorMessage);
+            case byte[][] instructions:
+                return TestCompiledFunctionValue(obj, instructions, out errorMessage);
+            case object[] o:
+                return TestArrayValue(obj, o, out errorMessage);
+            case IReadOnlyDictionary<HashKey, object> d:
+                return TestHashValue(obj, d, out errorMessage);
+            default:
+                errorMessage = $"type of object not handled. got={expected.GetType().Name}";
+                return false;
+        }
+    }
+
     private static bool TestCompiledFunctionObject(IObject obj, byte[][] instructions, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -130,12 +167,36 @@ internal static class TestCommon
         return TestInstructions(instructions, o.Instructions, out errorMessage);
     }
 
+    private static bool TestCompiledFunctionValue(Value obj, byte[][] instructions, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsCompiledFunction)
+        {
+            errorMessage = $"object is not CompiledFunctionObject. got={obj.Type}";
+            return false;
+        }
+
+        return TestInstructions(instructions, obj.CompiledFunctionData.Instructions, out errorMessage);
+    }
+
     private static bool TestNullObject(IObject obj, out string errorMessage)
     {
         errorMessage = string.Empty;
         if (obj is not NullObject)
         {
             errorMessage = $"object is not NullObject. got={obj.GetType()}";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TestNullValue(Value obj, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsNull)
+        {
+            errorMessage = $"object is not NullObject. got={obj.Type}";
             return false;
         }
 
@@ -165,6 +226,29 @@ internal static class TestCommon
         return true;
     }
 
+    private static bool TestHashValue(Value obj, IReadOnlyDictionary<HashKey, object> dictionary,
+        out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsHash)
+        {
+            errorMessage = $"object is not HashObject. got={obj.Type}";
+            return false;
+        }
+
+        if (obj.HashPairs.Count != dictionary.Count)
+        {
+            errorMessage = $"wrong num of elements. want={dictionary.Count}, got={obj.HashPairs.Count}";
+            return false;
+        }
+
+        foreach (var (key, value) in dictionary)
+            if (!TestValue(obj.HashPairs[key].Value, value, out errorMessage))
+                return false;
+
+        return true;
+    }
+
     private static bool TestArrayObject(IObject obj, object[] objects, out string errorMessage)
     {
         errorMessage = string.Empty;
@@ -187,12 +271,34 @@ internal static class TestCommon
         return true;
     }
 
+    private static bool TestArrayValue(Value obj, object[] objects, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsArray)
+        {
+            errorMessage = $"object is not ArrayObject. got={obj.Type}";
+            return false;
+        }
+
+        if (obj.ArrayElements.Count != objects.Length)
+        {
+            errorMessage = $"wrong num of elements. want={objects.Length}, got={obj.ArrayElements.Count}";
+            return false;
+        }
+
+        for (var i = 0; i < obj.ArrayElements.Count; i++)
+            if (!TestValue(obj.ArrayElements[i], objects[i], out errorMessage))
+                return false;
+
+        return true;
+    }
+
     private static bool TestIntegerObject(IObject obj, long expected, out string errorMessage)
     {
         errorMessage = string.Empty;
         if (obj is not IntegerObject integerObject)
         {
-            errorMessage = $"object is not IntegerObject. got={obj.GetType()}";
+            errorMessage = $"object is not IntegerObject. got={obj.Type}";
             return false;
         }
 
@@ -205,12 +311,30 @@ internal static class TestCommon
         return true;
     }
 
+    private static bool TestIntegerValue(Value obj, long expected, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsInteger)
+        {
+            errorMessage = $"object is not IntegerObject. got={obj.Type}";
+            return false;
+        }
+
+        if (obj.IntValue != expected)
+        {
+            errorMessage = $"object has wrong value. expected={expected}, got={obj.IntValue}";
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool TestStringObject(IObject obj, string expected, out string errorMessage)
     {
         errorMessage = string.Empty;
         if (obj is not StringObject stringObject)
         {
-            errorMessage = $"object is not StringObject. got={obj.GetType()}";
+            errorMessage = $"object is not StringObject. got={obj.Type}";
             return false;
         }
 
@@ -223,18 +347,54 @@ internal static class TestCommon
         return true;
     }
 
+    private static bool TestStringValue(Value obj, string expected, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsString)
+        {
+            errorMessage = $"object is not StringObject. got={obj.Type}";
+            return false;
+        }
+
+        if (obj.StringValue != expected)
+        {
+            errorMessage = $"object has wrong value. expected={expected}, got={obj.StringValue}";
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool TestBooleanObject(IObject obj, bool expected, out string errorMessage)
     {
         errorMessage = string.Empty;
         if (obj is not BooleanObject booleanObject)
         {
-            errorMessage = $"object is not BooleanObject. got={obj.GetType()}";
+            errorMessage = $"object is not BooleanObject. got={obj.Type}";
             return false;
         }
 
         if (booleanObject.Value != expected)
         {
             errorMessage = $"object has wrong value. expected={expected}, got={booleanObject.Value}";
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TestBooleanValue(Value obj, bool expected, out string errorMessage)
+    {
+        errorMessage = string.Empty;
+        if (!obj.IsBoolean)
+        {
+            errorMessage = $"object is not BooleanObject. got={obj.Type}";
+            return false;
+        }
+
+        if (obj.BooleanValue != expected)
+        {
+            errorMessage = $"object has wrong value. expected={expected}, got={obj.BooleanValue}";
             return false;
         }
 
