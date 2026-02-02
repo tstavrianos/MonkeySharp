@@ -30,7 +30,7 @@ public static class Builtins
                 var elements = args[0].ArrayElements;
                 if (elements.Count > 0)
                     return elements[0];
-                return Value.Null();
+                return Value.NullValue;
             })
         ),
         (
@@ -42,7 +42,7 @@ public static class Builtins
                 var elements = args[0].ArrayElements;
                 if (elements.Count > 0)
                     return elements[^1];
-                return Value.Null();
+                return Value.NullValue;
             })
         ),
         (
@@ -54,7 +54,7 @@ public static class Builtins
                 var elements = args[0].ArrayElements;
                 if (elements.Count > 0)
                     return Value.Array(elements.GetRange(1, elements.Count - 1));
-                return Value.Null();
+                return Value.NullValue;
             })
         ),
         (
@@ -89,7 +89,7 @@ public static class Builtins
             "puts", Value.Builtin(args =>
             {
                 foreach (var arg in args) Console.WriteLine(arg.Inspect);
-                return Value.Null();
+                return Value.NullValue;
             })
         )
     };

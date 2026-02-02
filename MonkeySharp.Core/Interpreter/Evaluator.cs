@@ -22,7 +22,7 @@ public class Evaluator
             case IntegerLiteral integerLiteral:
                 return Value.Integer(integerLiteral.Value);
             case BooleanLiteral booleanLiteral:
-                return Value.Boolean(booleanLiteral.Value);
+                return booleanLiteral.Value ? Value.True : Value.False;
             case PrefixExpression prefixExpression:
             {
                 var right = Eval(prefixExpression.Right, environment);
@@ -91,7 +91,7 @@ public class Evaluator
                 return EvalHashLiteral(hashLiteral, environment);
         }
 
-        return Value.Null();
+        return Value.NullValue;
     }
 
     private Value EvalHashLiteral(HashLiteral hashLiteral, Environment environment)
@@ -133,7 +133,7 @@ public class Evaluator
         var pairs = hashValue.HashPairs;
 
         if (!pairs.TryGetValue(hashed, out var pair))
-            return Value.Null();
+            return Value.NullValue;
 
         return pair.Value;
     }
@@ -146,7 +146,7 @@ public class Evaluator
         var max = elements.Count - 1;
 
         if (idx < 0 || idx > max)
-            return Value.Null();
+            return Value.NullValue;
 
         return elements[(int) idx];
     }
@@ -211,7 +211,7 @@ public class Evaluator
 
     private Value EvalBlockStatement(BlockStatement blockStatement, Environment environment)
     {
-        var result = Value.Null();
+        var result = Value.NullValue;
         foreach (var statement in blockStatement.Statements)
         {
             result = Eval(statement, environment);
@@ -223,7 +223,7 @@ public class Evaluator
 
     private Value EvalProgram(ProgramNode programNode, Environment environment)
     {
-        var result = Value.Null();
+        var result = Value.NullValue;
         foreach (var statement in programNode.Statements)
         {
             result = Eval(statement, environment);
@@ -240,6 +240,6 @@ public class Evaluator
         if (condition.IsError) return condition;
         if (condition.IsTruthy()) return Eval(ifExpression.Consequence, environment);
         if (ifExpression.Alternative != null) return Eval(ifExpression.Alternative, environment);
-        return Value.Null();
+        return Value.NullValue;
     }
 }

@@ -50,7 +50,9 @@ public class Vm
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Frame PopFrame()
     {
-        return _frames[--_frameIndex];
+        var frame = _frames[--_frameIndex];
+        //_frames[_frameIndex] = null; // Clear reference
+        return frame;
     }
 
     public Value LastPoppedStackElement { get; private set; }
@@ -92,13 +94,13 @@ public class Vm
                     break;
                 case OpCode.True:
                 {
-                    var err = Push(Value.Boolean(true));
+                    var err = Push(Value.True);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
                 case OpCode.False:
                 {
-                    var err = Push(Value.Boolean(false));
+                    var err = Push(Value.False);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -125,7 +127,7 @@ public class Vm
                 }
                 case OpCode.Null:
                 {
-                    var err = Push(Value.Null());
+                    var err = Push(Value.NullValue);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -200,7 +202,7 @@ public class Vm
                     currentFrame = CurrentFrame();
                     ins = currentFrame.Instructions().AsSpan();
                     _sp = frame.BasePointer - 1;
-                    var err = Push(Value.Null());
+                    var err = Push(Value.NullValue);
                     if (!string.IsNullOrEmpty(err)) return err;
                     break;
                 }
@@ -301,7 +303,7 @@ public class Vm
         var result = builtinValue.BuiltinFunction(args);
         _sp = _sp - numArgs - 1;
         if (result.IsError) return result.ErrorMessage;
-        Push(result.IsNull ? Value.Null() : result);
+        Push(result.IsNull ? Value.NullValue : result);
         return null;
     }
 
@@ -321,7 +323,7 @@ public class Vm
         if (!index.IsHashable) return $"unusable as hash key: {index.Type}";
         var hashKey = index.GetHashKey();
         if (!hashLeft.HashPairs.TryGetValue(hashKey, out var pair))
-            return Push(Value.Null());
+            return Push(Value.NullValue);
         return Push(pair.Value);
     }
 
@@ -331,7 +333,7 @@ public class Vm
         var i = (int) integerIndex.IntValue;
         var elements = arrayLeft.ArrayElements;
         var max = elements.Count - 1;
-        if (i < 0 || i > max) return Push(Value.Null());
+        if (i < 0 || i > max) return Push(Value.NullValue);
         return Push(elements[i]);
     }
 
@@ -354,10 +356,7 @@ public class Vm
 
     private Value BuildArray(int startIndex, int endIndex)
     {
-        var elements = new List<Value>(endIndex - startIndex);
-        for (var i = startIndex; i < endIndex; i++)
-            elements.Add(_stack[i]);
-        return Value.Array(elements);
+        return Value.Array(_stack[startIndex..endIndex]);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

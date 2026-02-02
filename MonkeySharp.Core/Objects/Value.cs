@@ -1,6 +1,5 @@
 ﻿using MonkeySharp.Core.Ast.Expressions;
 using MonkeySharp.Core.Ast.Statements;
-using MonkeySharp.Core.Interpreter;
 using MonkeySharp.Core.VirtualMachine;
 using System;
 using System.Collections.Generic;
@@ -28,6 +27,10 @@ public enum ValueKind
 
 public readonly struct Value : IEquatable<Value>
 {
+    public static readonly Value NullValue = Null();
+    public static readonly Value True = Boolean(true);
+    public static readonly Value False = Boolean(false);
+
     private readonly ValueKind _kind;
     private readonly long _intValue;
     private readonly object _objValue;
@@ -88,13 +91,13 @@ public readonly struct Value : IEquatable<Value>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Value Boolean(bool val)
+    private static Value Boolean(bool val)
     {
         return new Value(ValueKind.Boolean, val ? 1 : 0, null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Value Null()
+    private static Value Null()
     {
         return new Value(ValueKind.Null, 0, null);
     }
@@ -393,8 +396,8 @@ public readonly struct Value : IEquatable<Value>
     public static Value EvaluatorInfixOperation(Value left, string op, Value right)
     {
         if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
-        if (op == "==") return Boolean(left == right);
-        if (op == "!=") return Boolean(left != right);
+        if (op == "==") return left == right ? True : False;
+        if (op == "!=") return left != right ? True : False;
         if (left.IsInteger && right.IsInteger)
             return op switch
             {
@@ -402,8 +405,8 @@ public readonly struct Value : IEquatable<Value>
                 "-" => Integer(left.IntValue - right.IntValue),
                 "*" => Integer(left.IntValue * right.IntValue),
                 "/" => Integer(left.IntValue / right.IntValue),
-                "<" => Boolean(left.IntValue < right.IntValue),
-                ">" => Boolean(left.IntValue > right.IntValue),
+                "<" => left.IntValue < right.IntValue ? True : False,
+                ">" => left.IntValue > right.IntValue ? True : False,
                 _ => Error($"unknown operator: {left.Type} {op} {right.Type}")
             };
 
@@ -419,10 +422,10 @@ public readonly struct Value : IEquatable<Value>
         if (op == "!")
         {
             if (right.IsBoolean)
-                return Boolean(!right.BooleanValue);
+                return !right.BooleanValue ? True : False;
             if (right.IsNull)
-                return Boolean(true);
-            return Boolean(false);
+                return True;
+            return False;
         }
 
         if (op == "-" && right.IsInteger) return Integer(-right.IntValue);
@@ -433,8 +436,8 @@ public readonly struct Value : IEquatable<Value>
     public static Value VmInfixOperation(Value left, OpCode op, Value right)
     {
         if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
-        if (op == OpCode.Equal) return Boolean(left == right);
-        if (op == OpCode.NotEqual) return Boolean(left != right);
+        if (op == OpCode.Equal) return left == right ? True : False;
+        if (op == OpCode.NotEqual) return left != right ? True : False;
         if (left.IsInteger && right.IsInteger)
             return op switch
             {
@@ -442,7 +445,7 @@ public readonly struct Value : IEquatable<Value>
                 OpCode.Subtract => Integer(left.IntValue - right.IntValue),
                 OpCode.Multiply => Integer(left.IntValue * right.IntValue),
                 OpCode.Divide => Integer(left.IntValue / right.IntValue),
-                OpCode.GreaterThan => Boolean(left.IntValue > right.IntValue),
+                OpCode.GreaterThan => left.IntValue > right.IntValue ? True : False,
                 _ => Error($"unknown operator: {left.Type} {op} {right.Type}")
             };
 
@@ -458,10 +461,10 @@ public readonly struct Value : IEquatable<Value>
         if (op == OpCode.Bang)
         {
             if (right.IsBoolean)
-                return Boolean(!right.BooleanValue);
+                return !right.BooleanValue ? True : False;
             if (right.IsNull)
-                return Boolean(true);
-            return Boolean(false);
+                return True;
+            return False;
         }
 
         if (op == OpCode.Minus && right.IsInteger) return Integer(-right.IntValue);

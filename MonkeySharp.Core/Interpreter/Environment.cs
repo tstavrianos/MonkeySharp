@@ -27,7 +27,7 @@ public class Environment
                 return (obj, true);
         }
 
-        return (Value.Null(), false);
+        return (Value.NullValue, false);
     }
 
     public Value Set(string name, Value value)
