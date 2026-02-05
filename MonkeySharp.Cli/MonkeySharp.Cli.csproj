@@ -6,7 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\MonkeySharp.Core\MonkeySharp.Core.csproj"/>
+      <ProjectReference Include="..\MonkeySharp.AbstractSyntaxTree\MonkeySharp.AbstractSyntaxTree.csproj" />
+      <ProjectReference Include="..\MonkeySharp.Interpreter\MonkeySharp.Interpreter.csproj" />
+      <ProjectReference Include="..\MonkeySharp.VirtualMachine\MonkeySharp.VirtualMachine.csproj" />
     </ItemGroup>
 
 </Project>

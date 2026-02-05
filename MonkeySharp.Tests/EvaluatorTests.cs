@@ -107,8 +107,8 @@ addTwo(2);",
     [TestCaseSource(nameof(TestEvalExpressionCases))]
     public void TestEvalExpression(string input, object expected)
     {
-        var evaluated = TestCommon.Eval(input);
-        if (!TestCommon.TestValue(evaluated, expected, out var errorMessage))
+        var evaluated = TestEvalCommon.Eval(input);
+        if (!TestEvalCommon.TestValue(evaluated, expected, out var errorMessage))
         {
             Assert.Fail(errorMessage);
             return;
@@ -138,7 +138,7 @@ return 1;
     [TestCase("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION")]
     public void TestErrorHandling(string input, string expected)
     {
-        var evaluated = TestCommon.Eval(input);
+        var evaluated = TestEvalCommon.Eval(input);
         if (!evaluated.IsError)
         {
             Assert.Fail($"no error object returned. got={evaluated.Type}");
@@ -158,7 +158,7 @@ return 1;
     [TestCase("fn(x) { x + 2; }")]
     public void TestFunction(string input)
     {
-        var evaluated = TestCommon.Eval(input);
+        var evaluated = TestEvalCommon.Eval(input);
         if (!evaluated.IsFunction)
         {
             Assert.Fail($"object is not FunctionObject. got={evaluated.Type}");

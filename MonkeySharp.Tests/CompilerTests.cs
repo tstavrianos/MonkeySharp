@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.Core.Objects;
-using MonkeySharp.Core.VirtualMachine;
+using MonkeySharp.VirtualMachine;
+using MonkeySharp.VirtualMachine.Objects;
 using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
@@ -747,7 +747,7 @@ public class CompilerTests
         }
 
         for (var i = 0; i < expected.Length; i++)
-            if (!TestCommon.TestValue(actual[i], expected[i], out errorMessage))
+            if (!TestVmCommon.TestValue(actual[i], expected[i], out errorMessage))
                 return false;
 
         return true;
@@ -769,7 +769,7 @@ public class CompilerTests
 
         var bytecode = compiler.ByteCode();
 
-        if (!TestCommon.TestInstructions(expectedInstructions, bytecode.Instructions, out err))
+        if (!TestVmCommon.TestInstructions(expectedInstructions, bytecode.Instructions, out err))
         {
             Assert.Fail(err);
             return;

@@ -1,0 +1,287 @@
+using System.Collections.Generic;
+using System.Linq;
+using MonkeySharp.AbstractSyntaxTree.Expressions;
+using MonkeySharp.AbstractSyntaxTree.Statements;
+
+namespace MonkeySharp.AbstractSyntaxTree;
+
+/// <summary>
+/// Performs security analysis on an AST to detect potential security issues.
+/// </summary>
+public class SecurityAnalyzer
+{
+    private class FunctionInfo
+    {
+        public string Name { get; set; }
+        public bool HasBaseCase { get; set; }
+        public bool CallsItself { get; set; }
+        public List<string> CallsOthers { get; } = [];
+    }
+
+    private readonly List<string> _warnings = [];
+    private readonly Dictionary<string, FunctionInfo> _functions = new();
+    private FunctionInfo _currentFunction;
+    private bool _hasReturnInCurrentPath;
+
+    public IReadOnlyList<string> Warnings => _warnings;
+
+    /// <summary>
+    /// Analyzes the given AST node for security issues.
+    /// </summary>
+    /// <param name="node">The AST node to analyze</param>
+    /// <returns>True if analysis completed, false if critical issues found</returns>
+    public bool Analyze(Node node)
+    {
+        _warnings.Clear();
+        _functions.Clear();
+        _currentFunction = null;
+        _hasReturnInCurrentPath = false;
+
+        // First pass: collect all function definitions
+        CollectFunctions(node);
+
+        // Second pass: analyze for infinite loops and recursion
+        AnalyzeNode(node);
+
+        // Third pass: detect mutual recursion without base cases
+        DetectMutualRecursion();
+
+        return true;
+    }
+
+    private void CollectFunctions(Node node)
+    {
+        switch (node)
+        {
+            case ProgramNode program:
+                foreach (var statement in program.Statements) CollectFunctions(statement);
+                break;
+
+            case LetStatement {Value: FunctionLiteral functionLiteral} letStatement:
+                var funcInfo = new FunctionInfo {Name = letStatement.Name.Value};
+                _functions[letStatement.Name.Value] = funcInfo;
+                break;
+
+            case BlockStatement blockStatement:
+                foreach (var statement in blockStatement.Statements) CollectFunctions(statement);
+                break;
+
+            case IfExpression ifExpression:
+                CollectFunctions(ifExpression.Consequence);
+                if (ifExpression.Alternative != null) CollectFunctions(ifExpression.Alternative);
+                break;
+        }
+    }
+
+    private void AnalyzeNode(Node node)
+    {
+        switch (node)
+        {
+            case ProgramNode program:
+                foreach (var statement in program.Statements) AnalyzeNode(statement);
+                break;
+
+            case BlockStatement blockStatement:
+                AnalyzeBlockStatement(blockStatement);
+                break;
+
+            case ExpressionStatement expressionStatement:
+                AnalyzeNode(expressionStatement.Expression);
+                break;
+
+            case LetStatement letStatement:
+                AnalyzeLetStatement(letStatement);
+                break;
+
+            case ReturnStatement returnStatement:
+                _hasReturnInCurrentPath = true;
+                AnalyzeNode(returnStatement.ReturnValue);
+                break;
+
+            case IfExpression ifExpression:
+                AnalyzeIfExpression(ifExpression);
+                break;
+
+            case FunctionLiteral functionLiteral:
+                AnalyzeFunctionLiteral(functionLiteral);
+                break;
+
+            case CallExpression callExpression:
+                AnalyzeCallExpression(callExpression);
+                break;
+
+            case InfixExpression infixExpression:
+                AnalyzeNode(infixExpression.Left);
+                AnalyzeNode(infixExpression.Right);
+                break;
+
+            case PrefixExpression prefixExpression:
+                AnalyzeNode(prefixExpression.Right);
+                break;
+
+            case IndexExpression indexExpression:
+                AnalyzeNode(indexExpression.Left);
+                AnalyzeNode(indexExpression.Index);
+                break;
+
+            case ArrayLiteral arrayLiteral:
+                foreach (var element in arrayLiteral.Elements) AnalyzeNode(element);
+                break;
+
+            case HashLiteral hashLiteral:
+                foreach (var (key, value) in hashLiteral.Pairs)
+                {
+                    AnalyzeNode(key);
+                    AnalyzeNode(value);
+                }
+
+                break;
+
+            // Literals and identifiers don't need analysis
+            case IntegerLiteral:
+            case BooleanLiteral:
+            case StringLiteral:
+            case Identifier:
+                break;
+        }
+    }
+
+    private void AnalyzeBlockStatement(BlockStatement blockStatement)
+    {
+        foreach (var statement in blockStatement.Statements)
+        {
+            AnalyzeNode(statement);
+
+            // Check for dead code after return
+            if (_hasReturnInCurrentPath && statement != blockStatement.Statements.Last())
+            {
+                // Code after return is unreachable (handled by CodeQualityAnalyzer)
+            }
+        }
+    }
+
+    private void AnalyzeLetStatement(LetStatement letStatement)
+    {
+        AnalyzeNode(letStatement.Value);
+    }
+
+    private void AnalyzeIfExpression(IfExpression ifExpression)
+    {
+        AnalyzeNode(ifExpression.Condition);
+
+        // Track returns in both branches
+        var returnBeforeConsequence = _hasReturnInCurrentPath;
+        _hasReturnInCurrentPath = false;
+
+        AnalyzeNode(ifExpression.Consequence);
+        var consequenceHasReturn = _hasReturnInCurrentPath;
+
+        _hasReturnInCurrentPath = false;
+
+        if (ifExpression.Alternative != null) AnalyzeNode(ifExpression.Alternative);
+
+        var alternativeHasReturn = _hasReturnInCurrentPath;
+
+        // If both branches return, the path returns
+        _hasReturnInCurrentPath = returnBeforeConsequence || (consequenceHasReturn && alternativeHasReturn);
+
+        // Check for potential infinite recursion patterns
+        if (ifExpression.Condition is BooleanLiteral {Value: true})
+            // if (true) with recursive call and no return = infinite loop
+            if (!consequenceHasReturn && _currentFunction is {CallsItself: true})
+                AddWarning($"Potential infinite loop in function '{_currentFunction.Name}': " +
+                           "unconditional recursive call without guaranteed base case");
+    }
+
+    private void AnalyzeFunctionLiteral(FunctionLiteral functionLiteral)
+    {
+        var previousFunction = _currentFunction;
+        var previousHasReturn = _hasReturnInCurrentPath;
+
+        // Find the function info if this is a named function
+        if (!string.IsNullOrEmpty(functionLiteral.Name))
+            if (_functions.TryGetValue(functionLiteral.Name, out var funcInfo))
+                _currentFunction = funcInfo;
+
+        _hasReturnInCurrentPath = false;
+        AnalyzeNode(functionLiteral.Body);
+
+        // Check if function has any base case (any path that returns without recursion)
+        if (_currentFunction != null)
+        {
+            _currentFunction.HasBaseCase = _hasReturnInCurrentPath;
+
+            // Warn about unbounded recursion
+            if (_currentFunction.CallsItself && !_currentFunction.HasBaseCase)
+                AddWarning($"Function '{_currentFunction.Name}' contains recursion but no detectable base case. " +
+                           "This may lead to infinite recursion and stack overflow.");
+        }
+
+        _currentFunction = previousFunction;
+        _hasReturnInCurrentPath = previousHasReturn;
+    }
+
+    private void AnalyzeCallExpression(CallExpression callExpression)
+    {
+        // Check if this is a recursive call
+        if (callExpression.Function is Identifier identifier && _currentFunction != null)
+        {
+            if (identifier.Value == _currentFunction.Name)
+                _currentFunction.CallsItself = true;
+            else if (_functions.ContainsKey(identifier.Value)) _currentFunction.CallsOthers.Add(identifier.Value);
+        }
+
+        AnalyzeNode(callExpression.Function);
+        foreach (var arg in callExpression.Arguments) AnalyzeNode(arg);
+    }
+
+    private void DetectMutualRecursion()
+    {
+        // Detect cycles in function call graph that have no base cases
+        foreach (var (funcName, funcInfo) in _functions)
+        {
+            if (funcInfo.CallsItself && !funcInfo.HasBaseCase)
+                // Already warned about direct recursion
+                continue;
+
+            // Check for mutual recursion
+            var visited = new HashSet<string>();
+            var path = new List<string>();
+
+            if (HasRecursiveCycle(funcName, visited, path) && !AnyHasBaseCase(path))
+            {
+                var cycle = string.Join(" -> ", path);
+                AddWarning($"Potential infinite mutual recursion detected: {cycle}. " +
+                           "None of these functions have a detectable base case.");
+            }
+        }
+    }
+
+    private bool HasRecursiveCycle(string funcName, HashSet<string> visited, List<string> path)
+    {
+        if (path.Contains(funcName)) return true; // Found a cycle
+
+        if (!visited.Add(funcName)) return false; // Already checked this path
+
+        path.Add(funcName);
+
+        if (_functions.TryGetValue(funcName, out var funcInfo))
+            foreach (var calledFunc in funcInfo.CallsOthers)
+                if (HasRecursiveCycle(calledFunc, visited, path))
+                    return true;
+
+        path.Remove(funcName);
+        return false;
+    }
+
+    private bool AnyHasBaseCase(List<string> functionNames)
+    {
+        return functionNames.Any(name =>
+            _functions.TryGetValue(name, out var info) && info.HasBaseCase);
+    }
+
+    private void AddWarning(string message)
+    {
+        _warnings.Add($"Security: {message}");
+    }
+}

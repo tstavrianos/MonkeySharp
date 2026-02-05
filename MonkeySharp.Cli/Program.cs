@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.Core;
-using MonkeySharp.Core.VirtualMachine;
+using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.VirtualMachine;
+using MonkeySharp.VirtualMachine.Objects;
 
 namespace MonkeySharp.Cli;
 
@@ -15,8 +16,8 @@ internal static class Program
         Console.WriteLine("Feel free to type in commands");
 
         //var env = new Environment();
-        var constants = new List<Core.Objects.Value>();
-        var globals = new Core.Objects.Value[Vm.GlobalsSize];
+        var constants = new List<Value>();
+        var globals = new Value[Vm.GlobalsSize];
         var symbolTable = new SymbolTable();
         while (true)
         {

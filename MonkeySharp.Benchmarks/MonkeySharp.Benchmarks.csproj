@@ -29,7 +29,9 @@
 		<PackageReference Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
 	</ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\MonkeySharp.Core\MonkeySharp.Core.csproj" />
-    </ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\MonkeySharp.AbstractSyntaxTree\MonkeySharp.AbstractSyntaxTree.csproj" />
+	  <ProjectReference Include="..\MonkeySharp.Interpreter\MonkeySharp.Interpreter.csproj" />
+	  <ProjectReference Include="..\MonkeySharp.VirtualMachine\MonkeySharp.VirtualMachine.csproj" />
+	</ItemGroup>
 </Project>

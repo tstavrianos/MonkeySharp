@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.Core.Objects;
-using MonkeySharp.Core.VirtualMachine;
+using MonkeySharp.VirtualMachine;
+using MonkeySharp.VirtualMachine.Objects;
 using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
@@ -232,7 +232,7 @@ public class VmTests
         }
 
         var stackElement = vm.LastPoppedStackElement;
-        if (!TestCommon.TestValue(stackElement, expected, out err))
+        if (!TestVmCommon.TestValue(stackElement, expected, out err))
         {
             Assert.Fail(err);
             return;

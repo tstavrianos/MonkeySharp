@@ -1,12 +1,11 @@
 ﻿using System;
 using BenchmarkDotNet.Attributes;
-using MonkeySharp.Core;
-using MonkeySharp.Core.Ast;
-using MonkeySharp.Core.Interpreter;
-using MonkeySharp.Core.VirtualMachine;
 using BenchmarkDotNet.Jobs;
 using Microsoft.VSDiagnostics;
-using Environment = MonkeySharp.Core.Interpreter.Environment;
+using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.Interpreter;
+using MonkeySharp.VirtualMachine;
+using SymbolTable = MonkeySharp.Interpreter.SymbolTable;
 
 namespace MonkeySharp.Benchmarks;
 
@@ -85,7 +84,7 @@ fibonacci(20);";
     public long BenchmarkEvaluator()
     {
         var evaluator = new Evaluator();
-        var result = evaluator.Eval(_program, new Environment());
+        var result = evaluator.Eval(_program, new SymbolTable());
         if (!result.IsInteger) return long.MinValue;
         return result.IntValue;
     }
