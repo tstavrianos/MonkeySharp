@@ -213,6 +213,17 @@ public sealed class MonkeyFunction : MonkeyObject
         ParameterCount = parameterCount;
     }
 
+    /// <summary>
+    /// Validates the number of arguments matches the expected parameter count.
+    /// Returns null if valid, or a MonkeyError if invalid.
+    /// </summary>
+    public MonkeyError ValidateArgumentCount(int argumentCount)
+    {
+        if (argumentCount != ParameterCount)
+            return new MonkeyError($"wrong number of arguments. want={ParameterCount}, got={argumentCount}");
+        return null;
+    }
+
     public override string Inspect()
     {
         return $"<function:{Name}>";
@@ -221,5 +232,25 @@ public sealed class MonkeyFunction : MonkeyObject
     public override string TypeName()
     {
         return "FUNCTION";
+    }
+}
+
+public sealed class MonkeyError : MonkeyObject
+{
+    public string Message { get; }
+
+    public MonkeyError(string message)
+    {
+        Message = message ?? string.Empty;
+    }
+
+    public override string Inspect()
+    {
+        return $"ERROR: {Message}";
+    }
+
+    public override string TypeName()
+    {
+        return "ERROR";
     }
 }

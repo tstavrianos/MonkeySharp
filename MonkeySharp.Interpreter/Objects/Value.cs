@@ -360,7 +360,7 @@ public readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value InfixOperation(Value left, string op, Value right)
     {
-        if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
+        if (left._kind != right._kind) return Error($"unknown operator: {left.Type} {op} {right.Type}");
         if (op == "==") return left == right ? True : False;
         if (op == "!=") return left != right ? True : False;
         if (left.IsInteger && right.IsInteger)

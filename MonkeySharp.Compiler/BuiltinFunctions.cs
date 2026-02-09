@@ -16,7 +16,7 @@ public static class BuiltinFunctions
         {
             MonkeyString str => new MonkeyInteger(str.Value.Length),
             MonkeyArray arr => new MonkeyInteger(arr.Elements.Length),
-            _ => throw new Exception($"argument to 'len' not supported, got {obj.TypeName()}")
+            _ => new MonkeyError($"argument to 'len' not supported, got {obj.TypeName()}")
         };
     }
 
@@ -26,7 +26,7 @@ public static class BuiltinFunctions
     public static MonkeyObject first(MonkeyObject obj)
     {
         if (obj is not MonkeyArray arr)
-            throw new Exception($"argument to 'first' must be ARRAY, got {obj.TypeName()}");
+            return new MonkeyError($"argument to 'first' must be ARRAY, got {obj.TypeName()}");
 
         return arr.Elements.Length > 0 ? arr.Elements[0] : MonkeyNull.Instance;
     }
@@ -37,7 +37,7 @@ public static class BuiltinFunctions
     public static MonkeyObject last(MonkeyObject obj)
     {
         if (obj is not MonkeyArray arr)
-            throw new Exception($"argument to 'last' must be ARRAY, got {obj.TypeName()}");
+            return new MonkeyError($"argument to 'last' must be ARRAY, got {obj.TypeName()}");
 
         return arr.Elements.Length > 0 ? arr.Elements[^1] : MonkeyNull.Instance;
     }
@@ -48,7 +48,7 @@ public static class BuiltinFunctions
     public static MonkeyObject rest(MonkeyObject obj)
     {
         if (obj is not MonkeyArray arr)
-            throw new Exception($"argument to 'rest' must be ARRAY, got {obj.TypeName()}");
+            return new MonkeyError($"argument to 'rest' must be ARRAY, got {obj.TypeName()}");
 
         if (arr.Elements.Length == 0)
             return MonkeyNull.Instance;
@@ -64,7 +64,7 @@ public static class BuiltinFunctions
     public static MonkeyObject push(MonkeyObject arr, MonkeyObject element)
     {
         if (arr is not MonkeyArray array)
-            throw new Exception($"argument to 'push' must be ARRAY, got {arr.TypeName()}");
+            return new MonkeyError($"argument to 'push' must be ARRAY, got {arr.TypeName()}");
 
         var newElements = new MonkeyObject[array.Elements.Length + 1];
         Array.Copy(array.Elements, newElements, array.Elements.Length);
@@ -77,7 +77,8 @@ public static class BuiltinFunctions
     /// </summary>
     public static MonkeyObject puts(params MonkeyObject[] args)
     {
-        foreach (var arg in args) Console.WriteLine(arg.Inspect());
+        foreach (var arg in args)
+            Console.WriteLine(arg.Inspect());
         return MonkeyNull.Instance;
     }
 }

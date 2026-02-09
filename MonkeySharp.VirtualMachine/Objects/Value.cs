@@ -355,7 +355,7 @@ public readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value InfixOperation(Value left, OpCode op, Value right)
     {
-        if (left._kind != right._kind) return Error($"type mismatch: {left.Type} {op} {right.Type}");
+        if (left._kind != right._kind) return Error($"unknown operator: {left.Type} {op} {right.Type}");
         if (op == OpCode.Equal) return left == right ? True : False;
         if (op == OpCode.NotEqual) return left != right ? True : False;
         if (left.IsInteger && right.IsInteger)

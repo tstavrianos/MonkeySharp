@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using MonkeySharp.Compiler;
+using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
 
@@ -111,6 +112,43 @@ addTwo(2);",
         if (!TestCompilerCommon.TestValue(evaluated, expected, out var errorMessage))
         {
             Assert.Fail(errorMessage);
+            return;
+        }
+
+        Assert.Pass();
+    }
+
+    [Test]
+    [TestCase("5 + true;", "unknown operator: INTEGER + BOOLEAN")]
+    [TestCase("5 + true; 5;", "unknown operator: INTEGER + BOOLEAN")]
+    [TestCase("-true", "unknown operator: -BOOLEAN")]
+    [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN")]
+    [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN")]
+    [TestCase("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN")]
+    [TestCase(@"if (10 > 1) {
+if (10 > 1) {
+return true + false;
+}
+return 1;
+}", "unknown operator: BOOLEAN + BOOLEAN")]
+    [TestCase("foobar", "identifier not found: foobar")]
+    [TestCase("\"foo\" - \"bar\"", "unknown operator: STRING - STRING")]
+    [TestCase("len(1)", "argument to 'len' not supported, got INTEGER")]
+    [TestCase("len(\"one\", \"two\")", "wrong number of arguments. want=1, got=2")]
+    [TestCase("999[1]", "index operator not supported: INTEGER")]
+    [TestCase("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION")]
+    public void TestILErrorHandling(string input, string expected)
+    {
+        var evaluated = TestCompilerCommon.Eval(input);
+        if (evaluated is not MonkeyError error)
+        {
+            Assert.Fail($"no error object returned. got={evaluated.TypeName()}");
+            return;
+        }
+
+        if (error.Message != expected)
+        {
+            Assert.Fail($"wrong error message. expected={expected}, got={error.Message}");
             return;
         }
 

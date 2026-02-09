@@ -118,8 +118,8 @@ addTwo(2);",
     }
 
     [Test]
-    [TestCase("5 + true;", "type mismatch: INTEGER + BOOLEAN")]
-    [TestCase("5 + true; 5;", "type mismatch: INTEGER + BOOLEAN")]
+    [TestCase("5 + true;", "unknown operator: INTEGER + BOOLEAN")]
+    [TestCase("5 + true; 5;", "unknown operator: INTEGER + BOOLEAN")]
     [TestCase("-true", "unknown operator: -BOOLEAN")]
     [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN")]
     [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN")]
