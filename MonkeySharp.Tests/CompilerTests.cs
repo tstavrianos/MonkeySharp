@@ -759,7 +759,7 @@ public class CompilerTests
     public void TestCompilerConstant(string input, object[] expectedConstants, byte[][] expectedInstructions)
     {
         var program = TestCommon.Parse(input);
-        var compiler = new Compiler();
+        var compiler = new VirtualMachine.Compiler();
         var err = compiler.Compile(program);
         if (!string.IsNullOrEmpty(err))
         {

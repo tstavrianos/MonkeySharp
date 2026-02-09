@@ -3,6 +3,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using Microsoft.VSDiagnostics;
 using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.Compiler;
 using MonkeySharp.Interpreter;
 using MonkeySharp.VirtualMachine;
 using SymbolTable = MonkeySharp.Interpreter.SymbolTable;
@@ -52,6 +53,7 @@ fibonacci(20);";
 
     //private ProgramNode _programOptimized;
     private ByteCode _byteCode;
+    private Func<MonkeyObject> _func;
 
     //private ByteCode _byteCodeOptimized;
 
@@ -63,13 +65,16 @@ fibonacci(20);";
         _program = parser.ParseProgram();
         //var optimizer = new Optimizer();
         //_programOptimized = optimizer.Optimize(_program);
-        var valueCompiler = new Compiler();
+        var valueCompiler = new VirtualMachine.Compiler();
         valueCompiler.Compile(_program);
         _byteCode = valueCompiler.ByteCode();
 
         //var compilerOptimized = new Compiler();
         //compilerOptimized.Compile(_programOptimized);
         //_byteCodeOptimized = compilerOptimized.ByteCode();
+
+        var ilCompiler = new ILCompiler();
+        _func = ilCompiler.Compile(_program);
     }
 
     [Benchmark(Baseline = true)]
@@ -98,6 +103,15 @@ fibonacci(20);";
         var result = vm.LastPoppedStackElement;
         if (!result.IsInteger) return long.MinValue;
         return result.IntValue;
+    }
+
+    [Benchmark]
+    [BenchmarkCategory(Categories.IL)]
+    public long BenchmarkIL()
+    {
+        var result = _func();
+        if (result is not MonkeyInteger integer) return long.MinValue;
+        return integer.Value;
     }
 
     /*[Benchmark]

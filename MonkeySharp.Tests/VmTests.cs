@@ -215,7 +215,7 @@ public class VmTests
             return;
         }
 
-        var comp = new Compiler();
+        var comp = new VirtualMachine.Compiler();
         var err = comp.Compile(program);
         if (!string.IsNullOrEmpty(err))
         {
@@ -265,7 +265,7 @@ public class VmTests
             return;
         }
 
-        var comp = new Compiler();
+        var comp = new VirtualMachine.Compiler();
         var err = comp.Compile(program);
         if (!string.IsNullOrEmpty(err))
         {

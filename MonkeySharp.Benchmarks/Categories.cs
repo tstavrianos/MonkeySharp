@@ -8,4 +8,5 @@ internal static class Categories
     public const string Evaluator = "Evaluator";
     public const string Optimized = "Optimized";
     public const string Native = "Native";
+    public const string IL = "IL";
 }

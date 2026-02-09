@@ -21,6 +21,7 @@
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\MonkeySharp.AbstractSyntaxTree\MonkeySharp.AbstractSyntaxTree.csproj" />
+		<ProjectReference Include="..\MonkeySharp.Compiler\MonkeySharp.Compiler.csproj" />
 		<ProjectReference Include="..\MonkeySharp.Interpreter\MonkeySharp.Interpreter.csproj" />
 		<ProjectReference Include="..\MonkeySharp.VirtualMachine\MonkeySharp.VirtualMachine.csproj" />
 	</ItemGroup>
