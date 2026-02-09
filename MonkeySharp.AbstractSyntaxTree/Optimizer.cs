@@ -12,7 +12,7 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
     private const int MaxOptimizationPasses = 100;
 
     // simple scoped constant propagation maps
-    private readonly List<Dictionary<string, Expression>> _scopes = new();
+    private readonly List<Dictionary<string, Expression>> _scopes = [];
     private readonly Dictionary<string, bool> _mutableVariables = new();
 
     public ProgramNode Optimize(ProgramNode programNode)

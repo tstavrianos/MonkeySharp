@@ -6,7 +6,7 @@ namespace MonkeySharp.Interpreter.Objects;
 public static class Builtins
 {
     private static readonly (string name, int arity, Value builtin)[] Data =
-    {
+    [
         (
             "len", 1, Value.Builtin(args =>
             {
@@ -92,7 +92,7 @@ public static class Builtins
                 return Value.NullValue;
             })
         )
-    };
+    ];
 
     public static bool TryGet(string name, out Value ret)
     {

@@ -19,10 +19,20 @@ public abstract class MonkeyObject
     public abstract string TypeName();
 }
 
+public interface IHashable
+{
+    /// <summary>
+    /// Gets the hash code for this object, used as a key in a hash table.
+    /// </summary>
+    int GetHashCode();
+
+    bool Equals(object obj);
+}
+
 /// <summary>
 /// Represents a 64-bit integer value.
 /// </summary>
-public sealed class MonkeyInteger : MonkeyObject
+public sealed class MonkeyInteger : MonkeyObject, IHashable
 {
     public long Value { get; }
 
@@ -55,7 +65,7 @@ public sealed class MonkeyInteger : MonkeyObject
 /// <summary>
 /// Represents a string value.
 /// </summary>
-public sealed class MonkeyString : MonkeyObject
+public sealed class MonkeyString : MonkeyObject, IHashable
 {
     public string Value { get; }
 
@@ -88,7 +98,7 @@ public sealed class MonkeyString : MonkeyObject
 /// <summary>
 /// Represents a boolean value.
 /// </summary>
-public sealed class MonkeyBoolean : MonkeyObject
+public sealed class MonkeyBoolean : MonkeyObject, IHashable
 {
     public bool Value { get; }
 

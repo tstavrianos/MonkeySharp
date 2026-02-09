@@ -13,18 +13,16 @@ namespace MonkeySharp.Compiler;
 /// <summary>
 /// Compiles MonkeySharp AST to .NET IL code.
 /// </summary>
-public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
+public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor
 {
     private readonly ModuleBuilder _moduleBuilder;
     private ILGenerator _il;
     private TypeBuilder _currentTypeBuilder;
     private Dictionary<string, LocalBuilder> _locals = new();
     private readonly Stack<Dictionary<string, LocalBuilder>> _scopeStack = new();
-    private int _labelCounter;
     private int _typeCounter;
-    private List<FieldBuilder> _closureFields = new();
+    private List<FieldBuilder> _closureFields = [];
     private TypeBuilder _closureTypeBuilder;
-    private Label? _returnLabel;
     private LocalBuilder _closureContextLocal;
     private Dictionary<string, FieldBuilder> _closureFieldMap = new();
 
@@ -56,7 +54,6 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         _il = method.GetILGenerator();
         _locals.Clear();
         _scopeStack.Clear();
-        _returnLabel = null;
 
         var lastValueLocal = _il.DeclareLocal(typeof(MonkeyObject));
 
@@ -92,7 +89,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
         var type = _currentTypeBuilder.CreateType();
         var compiledMethod = type.GetMethod("Execute");
-        return (Func<MonkeyObject>) Delegate.CreateDelegate(typeof(Func<MonkeyObject>), compiledMethod);
+        return (Func<MonkeyObject>) Delegate.CreateDelegate(typeof(Func<MonkeyObject>), compiledMethod!);
     }
 
     #region Statement Visitors
@@ -102,8 +99,23 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         // Evaluate the value expression
         letStatement.Value?.Accept(this);
 
+        // Check if value is an error
+        var valueLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, valueLocal);
+        _il.Emit(OpCodes.Ldloc, valueLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var notErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, notErrorLabel);
+
+        // It's an error, return it
+        _il.Emit(OpCodes.Ldloc, valueLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(notErrorLabel);
         // Store in a local variable
         var local = DeclareLocal(letStatement.Name.Value, typeof(MonkeyObject));
+        _il.Emit(OpCodes.Ldloc, valueLocal);
         _il.Emit(OpCodes.Stloc, local);
     }
 
@@ -154,7 +166,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
     #region Expression Visitors
 
-    public object Visit(Identifier identifier)
+    public void Visit(Identifier identifier)
     {
         // Try to load from locals first
         if (TryGetLocal(identifier.Value, out var local))
@@ -172,75 +184,169 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
             // Try to load built-in function, or return error
             if (!TryEmitBuiltinFunction(identifier.Value)) EmitTypeError($"identifier not found: {identifier.Value}");
         }
-
-        return null;
     }
 
-    public object Visit(IntegerLiteral integerLiteral)
+    public void Visit(IntegerLiteral integerLiteral)
     {
         _il.Emit(OpCodes.Ldc_I8, integerLiteral.Value);
-        _il.Emit(OpCodes.Newobj, typeof(MonkeyInteger).GetConstructor([typeof(long)]));
-        return null;
+        _il.Emit(OpCodes.Newobj, typeof(MonkeyInteger).GetConstructor([typeof(long)])!);
     }
 
-    public object Visit(StringLiteral stringLiteral)
+    public void Visit(StringLiteral stringLiteral)
     {
         _il.Emit(OpCodes.Ldstr, stringLiteral.Value);
-        _il.Emit(OpCodes.Newobj, typeof(MonkeyString).GetConstructor([typeof(string)]));
-        return null;
+        _il.Emit(OpCodes.Newobj, typeof(MonkeyString).GetConstructor([typeof(string)])!);
     }
 
-    public object Visit(BooleanLiteral booleanLiteral)
+    public void Visit(BooleanLiteral booleanLiteral)
     {
         var field = booleanLiteral.Value
             ? typeof(MonkeyBoolean).GetField(nameof(MonkeyBoolean.True))
             : typeof(MonkeyBoolean).GetField(nameof(MonkeyBoolean.False));
-        _il.Emit(OpCodes.Ldsfld, field);
-        return null;
+        _il.Emit(OpCodes.Ldsfld, field!);
     }
 
-    public object Visit(ArrayLiteral arrayLiteral)
+    public void Visit(ArrayLiteral arrayLiteral)
     {
+        // Evaluate all elements first and check for errors
+        var elementLocals = new LocalBuilder[arrayLiteral.Elements.Count];
+        for (var i = 0; i < arrayLiteral.Elements.Count; i++)
+        {
+            arrayLiteral.Elements[i].Accept(this);
+            elementLocals[i] = _il.DeclareLocal(typeof(MonkeyObject));
+            _il.Emit(OpCodes.Stloc, elementLocals[i]);
+
+            // Check if element is an error
+            _il.Emit(OpCodes.Ldloc, elementLocals[i]);
+            _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+            var elemNotErrorLabel = _il.DefineLabel();
+            _il.Emit(OpCodes.Brfalse, elemNotErrorLabel);
+
+            // Element is an error, return it
+            _il.Emit(OpCodes.Ldloc, elementLocals[i]);
+            _il.Emit(OpCodes.Ret);
+
+            _il.MarkLabel(elemNotErrorLabel);
+        }
+
         // Create array
         _il.Emit(OpCodes.Ldc_I4, arrayLiteral.Elements.Count);
         _il.Emit(OpCodes.Newarr, typeof(MonkeyObject));
 
-        // Fill array
-        for (var i = 0; i < arrayLiteral.Elements.Count; i++)
+        // Fill array with evaluated elements
+        for (var i = 0; i < elementLocals.Length; i++)
         {
             _il.Emit(OpCodes.Dup);
             _il.Emit(OpCodes.Ldc_I4, i);
-            arrayLiteral.Elements[i].Accept(this);
+            _il.Emit(OpCodes.Ldloc, elementLocals[i]);
             _il.Emit(OpCodes.Stelem_Ref);
         }
 
-        _il.Emit(OpCodes.Newobj, typeof(MonkeyArray).GetConstructor([typeof(MonkeyObject[])]));
-        return null;
+        _il.Emit(OpCodes.Newobj, typeof(MonkeyArray).GetConstructor([typeof(MonkeyObject[])])!);
     }
 
-    public object Visit(HashLiteral hashLiteral)
+    public void Visit(HashLiteral hashLiteral)
     {
-        // Create dictionary
-        _il.Emit(OpCodes.Newobj,
-            typeof(Dictionary<MonkeyObject, MonkeyObject>).GetConstructor(Type.EmptyTypes));
+        // Evaluate all keys and values first, checking for errors and validating hash-ability
+        var pairLocals = new List<(LocalBuilder Key, LocalBuilder Value)>();
 
         foreach (var pair in hashLiteral.Pairs)
         {
-            _il.Emit(OpCodes.Dup);
+            // Evaluate key
             pair.Key.Accept(this);
+            var keyLocal = _il.DeclareLocal(typeof(MonkeyObject));
+            _il.Emit(OpCodes.Stloc, keyLocal);
+
+            // Check if key is an error
+            _il.Emit(OpCodes.Ldloc, keyLocal);
+            _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+            var keyNotErrorLabel = _il.DefineLabel();
+            _il.Emit(OpCodes.Brfalse, keyNotErrorLabel);
+
+            // Key is an error, return it
+            _il.Emit(OpCodes.Ldloc, keyLocal);
+            _il.Emit(OpCodes.Ret);
+
+            _il.MarkLabel(keyNotErrorLabel);
+
+            // Check if key is hashable
+            _il.Emit(OpCodes.Ldloc, keyLocal);
+            _il.Emit(OpCodes.Isinst, typeof(IHashable));
+
+            var keyHashableLabel = _il.DefineLabel();
+            _il.Emit(OpCodes.Brtrue, keyHashableLabel);
+
+            // Key is not hashable - error
+            _il.Emit(OpCodes.Ldstr, "unusable as hash key: ");
+            _il.Emit(OpCodes.Ldloc, keyLocal);
+            _il.Emit(OpCodes.Callvirt, typeof(MonkeyObject).GetMethod(nameof(MonkeyObject.TypeName))!);
+            _il.Emit(OpCodes.Call, typeof(string).GetMethod("Concat", [typeof(string), typeof(string)])!);
+            _il.Emit(OpCodes.Newobj, typeof(MonkeyError).GetConstructor([typeof(string)])!);
+            _il.Emit(OpCodes.Ret);
+
+            _il.MarkLabel(keyHashableLabel);
+
+            // Evaluate value
             pair.Value.Accept(this);
+            var valueLocal = _il.DeclareLocal(typeof(MonkeyObject));
+            _il.Emit(OpCodes.Stloc, valueLocal);
+
+            // Check if value is an error
+            _il.Emit(OpCodes.Ldloc, valueLocal);
+            _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+            var valueNotErrorLabel = _il.DefineLabel();
+            _il.Emit(OpCodes.Brfalse, valueNotErrorLabel);
+
+            // Value is an error, return it
+            _il.Emit(OpCodes.Ldloc, valueLocal);
+            _il.Emit(OpCodes.Ret);
+
+            _il.MarkLabel(valueNotErrorLabel);
+
+            pairLocals.Add((keyLocal, valueLocal));
+        }
+
+        // Create dictionary
+        _il.Emit(OpCodes.Newobj,
+            typeof(Dictionary<MonkeyObject, MonkeyObject>).GetConstructor(Type.EmptyTypes)!);
+
+        // Add all pairs to dictionary
+        foreach (var (keyLocal, valueLocal) in pairLocals)
+        {
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldloc, keyLocal);
+            _il.Emit(OpCodes.Ldloc, valueLocal);
             _il.Emit(OpCodes.Callvirt,
-                typeof(Dictionary<MonkeyObject, MonkeyObject>).GetMethod("Add"));
+                typeof(Dictionary<MonkeyObject, MonkeyObject>).GetMethod("Add")!);
         }
 
         _il.Emit(OpCodes.Newobj,
-            typeof(MonkeyHash).GetConstructor([typeof(Dictionary<MonkeyObject, MonkeyObject>)]));
-        return null;
+            typeof(MonkeyHash).GetConstructor([typeof(Dictionary<MonkeyObject, MonkeyObject>)])!);
     }
 
-    public object Visit(PrefixExpression prefixExpression)
+    public void Visit(PrefixExpression prefixExpression)
     {
         prefixExpression.Right.Accept(this);
+
+        // Check if right is an error
+        var rightLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, rightLocal);
+        _il.Emit(OpCodes.Ldloc, rightLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var notErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, notErrorLabel);
+
+        // It's an error, return it
+        _il.Emit(OpCodes.Ldloc, rightLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(notErrorLabel);
+        // Load the value back for processing
+        _il.Emit(OpCodes.Ldloc, rightLocal);
 
         switch (prefixExpression.Operator)
         {
@@ -254,14 +360,47 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
                 EmitTypeError($"unknown operator: {prefixExpression.Operator}");
                 break;
         }
-
-        return null;
     }
 
-    public object Visit(InfixExpression infixExpression)
+    public void Visit(InfixExpression infixExpression)
     {
         infixExpression.Left.Accept(this);
+
+        // Check if left is an error
+        var leftLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, leftLocal);
+        _il.Emit(OpCodes.Ldloc, leftLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var leftNotErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, leftNotErrorLabel);
+
+        // Left is an error, return it
+        _il.Emit(OpCodes.Ldloc, leftLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(leftNotErrorLabel);
+
         infixExpression.Right.Accept(this);
+
+        // Check if right is an error
+        var rightLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, rightLocal);
+        _il.Emit(OpCodes.Ldloc, rightLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var rightNotErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, rightNotErrorLabel);
+
+        // Right is an error, return it
+        _il.Emit(OpCodes.Ldloc, rightLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(rightNotErrorLabel);
+
+        // Load both operands back for processing
+        _il.Emit(OpCodes.Ldloc, leftLocal);
+        _il.Emit(OpCodes.Ldloc, rightLocal);
 
         switch (infixExpression.Operator)
         {
@@ -293,11 +432,9 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
                 EmitTypeError($"unknown operator: {infixExpression.Operator}");
                 break;
         }
-
-        return null;
     }
 
-    public object Visit(IfExpression ifExpression)
+    public void Visit(IfExpression ifExpression)
     {
         var elseLabel = _il.DefineLabel();
         var endLabel = _il.DefineLabel();
@@ -305,6 +442,24 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
         // Evaluate condition
         ifExpression.Condition.Accept(this);
+
+        // Check if condition is an error
+        var condLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, condLocal);
+        _il.Emit(OpCodes.Ldloc, condLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var condNotErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, condNotErrorLabel);
+
+        // Condition is an error, return it
+        _il.Emit(OpCodes.Ldloc, condLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(condNotErrorLabel);
+
+        // Evaluate truthiness of condition
+        _il.Emit(OpCodes.Ldloc, condLocal);
         EmitIsTruthy();
         _il.Emit(OpCodes.Brfalse, elseLabel);
 
@@ -372,10 +527,9 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
         _il.MarkLabel(endLabel);
         _il.Emit(OpCodes.Ldloc, resultLocal);
-        return null;
     }
 
-    public object Visit(FunctionLiteral functionLiteral)
+    public void Visit(FunctionLiteral functionLiteral)
     {
         // Create a new type for this function
         var funcTypeName = $"Function_{_typeCounter++}";
@@ -406,18 +560,18 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
                 CallingConventions.Standard,
                 ctorParamTypes);
 
-            var ctorIL = constructor.GetILGenerator();
-            ctorIL.Emit(OpCodes.Ldarg_0);
-            ctorIL.Emit(OpCodes.Call, typeof(object).GetConstructor(Type.EmptyTypes)!);
+            var ctorIl = constructor.GetILGenerator();
+            ctorIl.Emit(OpCodes.Ldarg_0);
+            ctorIl.Emit(OpCodes.Call, typeof(object).GetConstructor(Type.EmptyTypes)!);
 
             for (var i = 0; i < freeVars.Count; i++)
             {
-                ctorIL.Emit(OpCodes.Ldarg_0);
-                ctorIL.Emit(OpCodes.Ldarg, i + 1);
-                ctorIL.Emit(OpCodes.Stfld, closureFields[freeVars[i]]);
+                ctorIl.Emit(OpCodes.Ldarg_0);
+                ctorIl.Emit(OpCodes.Ldarg, i + 1);
+                ctorIl.Emit(OpCodes.Stfld, closureFields[freeVars[i]]);
             }
 
-            ctorIL.Emit(OpCodes.Ret);
+            ctorIl.Emit(OpCodes.Ret);
         }
 
         // Define the method
@@ -428,7 +582,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
             typeof(MonkeyObject),
             paramTypes);
 
-        var oldIL = _il;
+        var oldIl = _il;
         var oldLocals = new Dictionary<string, LocalBuilder>(_locals);
         var oldTypeBuilder = _currentTypeBuilder;
         var oldClosureFields = new List<FieldBuilder>(_closureFields);
@@ -510,7 +664,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         var funcType = funcTypeBuilder.CreateType();
 
         // Restore previous IL generator
-        _il = oldIL;
+        _il = oldIl;
         _locals = oldLocals;
         _currentTypeBuilder = oldTypeBuilder;
         _closureFields = oldClosureFields;
@@ -599,24 +753,35 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
             _il.Emit(OpCodes.Newobj,
                 typeof(MonkeyFunction).GetConstructor([typeof(Delegate), typeof(string), typeof(int)])!);
         }
-
-        return null;
     }
 
-    public object Visit(CallExpression callExpression)
+    public void Visit(CallExpression callExpression)
     {
-        return Visit(callExpression, false);
+        Visit(callExpression, false);
     }
 
-    private object Visit(CallExpression callExpression, bool isTailPosition)
+    private void Visit(CallExpression callExpression, bool isTailPosition)
     {
-        // Evaluate arguments first
+        // Evaluate arguments first and check for errors
         var argLocals = new LocalBuilder[callExpression.Arguments.Count];
         for (var i = 0; i < callExpression.Arguments.Count; i++)
         {
             callExpression.Arguments[i].Accept(this);
             argLocals[i] = _il.DeclareLocal(typeof(MonkeyObject));
             _il.Emit(OpCodes.Stloc, argLocals[i]);
+
+            // Check if argument is an error
+            _il.Emit(OpCodes.Ldloc, argLocals[i]);
+            _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+            var argNotErrorLabel = _il.DefineLabel();
+            _il.Emit(OpCodes.Brfalse, argNotErrorLabel);
+
+            // Argument is an error, return it
+            _il.Emit(OpCodes.Ldloc, argLocals[i]);
+            _il.Emit(OpCodes.Ret);
+
+            _il.MarkLabel(argNotErrorLabel);
         }
 
         // Evaluate the function
@@ -638,19 +803,43 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         // Normal execution continues here
         _il.MarkLabel(notErrorLabel);
         EmitFunctionCallWithValidation(funcResult, argLocals, isTailPosition);
-
-        return null;
     }
 
-    public object Visit(IndexExpression indexExpression)
+    public void Visit(IndexExpression indexExpression)
     {
         indexExpression.Left.Accept(this);
+
+        // Check if left is an error
+        var leftLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        _il.Emit(OpCodes.Stloc, leftLocal);
+        _il.Emit(OpCodes.Ldloc, leftLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var leftNotErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, leftNotErrorLabel);
+
+        // Left is an error, return it
+        _il.Emit(OpCodes.Ldloc, leftLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(leftNotErrorLabel);
+
         indexExpression.Index.Accept(this);
 
-        var leftLocal = _il.DeclareLocal(typeof(MonkeyObject));
+        // Check if index is an error
         var indexLocal = _il.DeclareLocal(typeof(MonkeyObject));
         _il.Emit(OpCodes.Stloc, indexLocal);
-        _il.Emit(OpCodes.Stloc, leftLocal);
+        _il.Emit(OpCodes.Ldloc, indexLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyError));
+
+        var indexNotErrorLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, indexNotErrorLabel);
+
+        // Index is an error, return it
+        _il.Emit(OpCodes.Ldloc, indexLocal);
+        _il.Emit(OpCodes.Ret);
+
+        _il.MarkLabel(indexNotErrorLabel);
 
         var arrayLabel = _il.DefineLabel();
         var hashLabel = _il.DefineLabel();
@@ -727,19 +916,21 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         // Hash indexing
         _il.MarkLabel(hashLabel);
 
-        // Check if key is hashable (not a function, array, or hash)
-        var hashKeyOkLabel = _il.DefineLabel();
+        // Check if key is hashable using IHashable interface
         _il.Emit(OpCodes.Ldloc, indexLocal);
-        _il.Emit(OpCodes.Isinst, typeof(MonkeyFunction));
-        var checkNotFunction = _il.DefineLabel();
-        _il.Emit(OpCodes.Brfalse, checkNotFunction);
+        _il.Emit(OpCodes.Isinst, typeof(IHashable));
+        var hashableKeyLabel = _il.DefineLabel();
+        _il.Emit(OpCodes.Brtrue, hashableKeyLabel);
 
-        // Key is a function - error
-        _il.Emit(OpCodes.Ldstr, "unusable as hash key: FUNCTION");
+        // Key is not hashable - error
+        _il.Emit(OpCodes.Ldstr, "unusable as hash key: ");
+        _il.Emit(OpCodes.Ldloc, indexLocal);
+        _il.Emit(OpCodes.Callvirt, typeof(MonkeyObject).GetMethod(nameof(MonkeyObject.TypeName))!);
+        _il.Emit(OpCodes.Call, typeof(string).GetMethod("Concat", [typeof(string), typeof(string)])!);
         _il.Emit(OpCodes.Newobj, typeof(MonkeyError).GetConstructor([typeof(string)])!);
         _il.Emit(OpCodes.Br, endLabel);
 
-        _il.MarkLabel(checkNotFunction);
+        _il.MarkLabel(hashableKeyLabel);
 
         var hashDictLocal = _il.DeclareLocal(typeof(Dictionary<MonkeyObject, MonkeyObject>));
         var hashResultLocal = _il.DeclareLocal(typeof(MonkeyObject));
@@ -764,7 +955,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         _il.Emit(OpCodes.Ldloc, hashResultLocal);
         _il.Emit(OpCodes.Br, endLabel);
 
-        // Error: invalid index type
+        // Error: invalid index type (for arrays)
         _il.MarkLabel(errorLabel);
         _il.Emit(OpCodes.Ldstr, "index must be INTEGER, got ");
         _il.Emit(OpCodes.Ldloc, indexLocal);
@@ -773,7 +964,6 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         _il.Emit(OpCodes.Newobj, typeof(MonkeyError).GetConstructor([typeof(string)])!);
 
         _il.MarkLabel(endLabel);
-        return null;
     }
 
     #endregion
@@ -808,7 +998,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
     private void EmitNull()
     {
-        _il.Emit(OpCodes.Ldsfld, typeof(MonkeyNull).GetField(nameof(MonkeyNull.Instance)));
+        _il.Emit(OpCodes.Ldsfld, typeof(MonkeyNull).GetField(nameof(MonkeyNull.Instance))!);
     }
 
     /// <summary>
@@ -827,7 +1017,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
     /// </summary>
     private void EmitBinaryOpTypeError(string op, LocalBuilder leftLocal, LocalBuilder rightLocal)
     {
-        _il.Emit(OpCodes.Ldstr, $"unknown operator: ");
+        _il.Emit(OpCodes.Ldstr, "unknown operator: ");
         _il.Emit(OpCodes.Ldloc, leftLocal);
         _il.Emit(OpCodes.Callvirt, typeof(MonkeyObject).GetMethod(nameof(MonkeyObject.TypeName))!);
         _il.Emit(OpCodes.Ldstr, $" {op} ");
@@ -855,7 +1045,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         EmitIsTruthy();
         _il.Emit(OpCodes.Ldc_I4_0);
         _il.Emit(OpCodes.Ceq);
-        _il.Emit(OpCodes.Call, typeof(MonkeyBoolean).GetMethod(nameof(MonkeyBoolean.From)));
+        _il.Emit(OpCodes.Call, typeof(MonkeyBoolean).GetMethod(nameof(MonkeyBoolean.From))!);
     }
 
     private void EmitMinusOperator()
@@ -1238,26 +1428,26 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
             typeof(MonkeyObject),
             paramTypes);
 
-        var wrapperIL = wrapperMethod.GetILGenerator();
+        var wrapperIl = wrapperMethod.GetILGenerator();
 
         // Load all arguments
-        for (var i = 0; i < parameters.Length; i++) wrapperIL.Emit(OpCodes.Ldarg, i + 1);
+        for (var i = 0; i < parameters.Length; i++) wrapperIl.Emit(OpCodes.Ldarg, i + 1);
 
         // Call the static built-in function
-        wrapperIL.Emit(OpCodes.Call, method);
-        wrapperIL.Emit(OpCodes.Ret);
+        wrapperIl.Emit(OpCodes.Call, method);
+        wrapperIl.Emit(OpCodes.Ret);
 
         var wrapperType = wrapperTypeBuilder.CreateType();
 
         // Create instance and wrap in MonkeyFunction
-        _il.Emit(OpCodes.Newobj, wrapperType.GetConstructor(Type.EmptyTypes));
+        _il.Emit(OpCodes.Newobj, wrapperType.GetConstructor(Type.EmptyTypes)!);
         _il.Emit(OpCodes.Dup);
-        _il.Emit(OpCodes.Ldvirtftn, wrapperType.GetMethod("Invoke"));
+        _il.Emit(OpCodes.Ldvirtftn, wrapperType.GetMethod("Invoke")!);
         _il.Emit(OpCodes.Newobj, GetFuncDelegateConstructor(parameters.Length));
         _il.Emit(OpCodes.Ldstr, name);
         _il.Emit(OpCodes.Ldc_I4, parameters.Length);
         _il.Emit(OpCodes.Newobj,
-            typeof(MonkeyFunction).GetConstructor([typeof(Delegate), typeof(string), typeof(int)]));
+            typeof(MonkeyFunction).GetConstructor([typeof(Delegate), typeof(string), typeof(int)])!);
 
         return true;
     }
@@ -1315,8 +1505,8 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
             typeof(MonkeyFunction).GetProperty(nameof(MonkeyFunction.CompiledFunction))!.GetGetMethod()!);
 
         // Load arguments
-        for (var i = 0; i < argLocals.Length; i++)
-            _il.Emit(OpCodes.Ldloc, argLocals[i]);
+        foreach (var t in argLocals)
+            _il.Emit(OpCodes.Ldloc, t);
 
         // If this is a tail call, emit the tail prefix
         if (isTailPosition)
@@ -1324,14 +1514,14 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
 
         // Invoke the function
         var invokeMethod = GetFuncDelegateType(argLocals.Length).GetMethod("Invoke");
-        _il.Emit(OpCodes.Callvirt, invokeMethod);
+        _il.Emit(OpCodes.Callvirt, invokeMethod!);
 
         // If tail call, immediately return
         if (isTailPosition)
             _il.Emit(OpCodes.Ret);
     }
 
-    private Type GetFuncDelegateType(int paramCount)
+    private static Type GetFuncDelegateType(int paramCount)
     {
         return paramCount switch
         {
@@ -1343,7 +1533,7 @@ public sealed class ILCompiler : IStatementVisitor, IExpressionVisitor<object>
         };
     }
 
-    private ConstructorInfo GetFuncDelegateConstructor(int paramCount)
+    private static ConstructorInfo GetFuncDelegateConstructor(int paramCount)
     {
         var delegateType = GetFuncDelegateType(paramCount);
         return delegateType.GetConstructors()[0];
