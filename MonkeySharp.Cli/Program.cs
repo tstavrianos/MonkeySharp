@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.AbstractSyntaxTree;
 using MonkeySharp.VirtualMachine;
-using MonkeySharp.VirtualMachine.Objects;
 
 namespace MonkeySharp.Cli;
 
@@ -12,56 +10,39 @@ internal static class Program
 
     public static void Main(string[] args)
     {
-        Console.WriteLine($"Hello {Environment.UserName}! This is the Monkey programming language!");
+        Console.WriteLine(
+            $"Hello {Environment.UserName}! This is the Monkey programming language!"
+        );
         Console.WriteLine("Feel free to type in commands");
 
-        //var env = new Environment();
-        var constants = new List<Value>();
-        var globals = new Value[Vm.GlobalsSize];
-        var symbolTable = new SymbolTable();
+        var vmSession = new VmSession();
         while (true)
         {
             Console.Write(Prompt);
             var input = Console.ReadLine();
-            if (input == null) break;
+            if (input == null)
+                break;
 
-            var lexer = new Lexer(input);
-            var parser = new Parser(lexer);
-            var program = parser.ParseProgram();
-            if (parser.Errors.Count != 0)
+            var compiled = vmSession.Compile(input);
+            if (!compiled.IsValid)
             {
-                PrintParserErrors(parser.Errors);
+                PrintParserErrors(compiled.Diagnostics);
                 continue;
             }
 
-            /*var evaluator = new Evaluator();
-            var evaluated = evaluator.Eval(program, env);
-
-            Console.WriteLine(evaluated.Inspect);*/
-
-            var compiler = new Compiler(symbolTable, constants);
-            var err = compiler.Compile(program);
-            if (!string.IsNullOrEmpty(err))
+            var execution = vmSession.Run(compiled);
+            if (!execution.Success)
             {
-                Console.WriteLine($"Woops! Compilation failed:\n{err}");
+                Console.WriteLine($"Woops! Executing bytecode failed:\n{execution.Error}");
                 continue;
             }
 
-            var bytecode = compiler.ByteCode();
-            var vm = new Vm(bytecode, globals);
-            err = vm.Run();
-            if (!string.IsNullOrEmpty(err))
-            {
-                Console.WriteLine($"Woops! Executing bytecode failed:\n{err}");
-                continue;
-            }
-
-            var stackTop = vm.LastPoppedStackElement;
-            Console.WriteLine($"VM Output: {stackTop.Inspect}");
+            Console.WriteLine($"VM Output: {execution.Value.Inspect}");
         }
     }
 
-    private const string MonkeyFace = @"            __,__
+    private const string MonkeyFace =
+        @"            __,__
    .--.  .-""     ""-.  .--.
   / .. \/  .-. .-.  \/ .. \
  | |  '|  /   Y   \  |'  | |
@@ -79,6 +60,7 @@ internal static class Program
         Console.Write(MonkeyFace);
         Console.WriteLine("Woops! We ran into some monkey business here!");
         Console.WriteLine(" parser errors:");
-        foreach (var error in errors) Console.WriteLine($"\t{error}");
+        foreach (var error in errors)
+            Console.WriteLine($"\t{error}");
     }
 }

@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
@@ -8,7 +8,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// This class implements the Visitor pattern to allow double dispatch for statement processing.
 /// </summary>
 /// <param name="token">The token associated with this statement node.</param>
-public abstract class Statement(Token token) : Node(token)
+internal abstract class Statement(Token token) : Node(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.

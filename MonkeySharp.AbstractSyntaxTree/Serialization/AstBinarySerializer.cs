@@ -10,7 +10,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Serialization;
 /// Visitor that serializes AST nodes to binary format.
 /// Implements both expression and statement visitors to traverse the entire AST.
 /// </summary>
-public class AstBinarySerializer : IExpressionVisitor, IStatementVisitor
+internal class AstBinarySerializer : IExpressionVisitor, IStatementVisitor
 {
     private readonly BinaryWriter _writer;
 

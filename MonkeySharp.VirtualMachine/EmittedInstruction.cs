@@ -1,6 +1,6 @@
 ﻿namespace MonkeySharp.VirtualMachine;
 
-public readonly struct EmittedInstruction
+internal readonly struct EmittedInstruction
 {
     public readonly OpCode OpCode;
     public readonly int Position;

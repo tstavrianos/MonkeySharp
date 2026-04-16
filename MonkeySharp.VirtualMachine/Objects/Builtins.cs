@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MonkeySharp.VirtualMachine.Objects;
 
-public static class Builtins
+internal static class Builtins
 {
     private static readonly (string name, int arity, Value builtin)[] Data =
     [
@@ -115,20 +115,35 @@ public static class Builtins
         ),
     ];
 
-    public static IEnumerable<(string, int)> Keys()
+    internal static IReadOnlyList<(string name, int arity, Value builtin)> Entries => Data;
+
+    internal static IEnumerable<(string, int)> Keys()
     {
         for (var i = 0; i < Data.Length; i++)
             yield return (Data[i].name, i);
     }
 
-    public static Value ByIndex(int index)
+    internal static Value ByIndex(int index)
     {
         return Data[index].builtin;
     }
 
-    public static IEnumerable<(string, int)> NamesAndArguments()
+    internal static Value CreateHostBuiltin(
+        string name,
+        int arity,
+        Func<IReadOnlyList<Value>, Value> function
+    )
     {
-        foreach (var (key, arity, _) in Data)
-            yield return (key, arity);
+        return Value.Builtin(args =>
+        {
+            if (arity >= 0 && args.Count != arity)
+            {
+                return Value.Error(
+                    $"wrong number of arguments for '{name}'. want={arity}, got={args.Count}"
+                );
+            }
+
+            return function(args);
+        });
     }
 }

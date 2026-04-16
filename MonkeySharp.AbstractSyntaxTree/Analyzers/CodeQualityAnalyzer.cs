@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// <summary>
 /// Performs code quality analysis to detect unused variables, dead code, and other quality issues.
 /// </summary>
-public class CodeQualityAnalyzer
+internal class CodeQualityAnalyzer
 {
     private class VariableInfo
     {

@@ -6,7 +6,7 @@ using MonkeySharp.VirtualMachine.Objects;
 
 namespace MonkeySharp.VirtualMachine;
 
-public class Vm
+internal sealed class Vm
 {
     private const int StackSize = 2048;
 
@@ -16,24 +16,33 @@ public class Vm
     private readonly Value[] _constants;
     private readonly Value[] _stack = new Value[StackSize];
     private readonly Value[] _globals = new Value[GlobalsSize];
+    private readonly Value[] _builtins;
     private int _sp;
 
     private readonly Frame[] _frames = new Frame[MaxFrames];
     private int _frameIndex;
 
-    public Vm(ByteCode bytecode)
+    internal Vm(ByteCode bytecode)
+        : this(bytecode, new Value[GlobalsSize], GetDefaultBuiltins()) { }
+
+    internal Vm(ByteCode bytecode, Value[] globals, Value[] builtins)
     {
         var function = Value.CompiledFunction(bytecode.Instructions, 0, 0);
         var closure = Value.Closure(function, []);
         PushFrame(new Frame(closure, 0));
         _constants = bytecode.Constants;
+        Array.Copy(globals, _globals, Math.Min(globals.Length, GlobalsSize));
+        _builtins = builtins;
         _sp = 0;
     }
 
-    public Vm(ByteCode bytecode, Value[] s)
-        : this(bytecode)
+    private static Value[] GetDefaultBuiltins()
     {
-        Array.Copy(s, _globals, s.Length);
+        var builtins = new Value[Builtins.Entries.Count];
+        for (var i = 0; i < Builtins.Entries.Count; i++)
+            builtins[i] = Builtins.Entries[i].builtin;
+
+        return builtins;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -56,9 +65,9 @@ public class Vm
         return frame;
     }
 
-    public Value LastPoppedStackElement { get; private set; }
+    internal Value LastPoppedStackElement { get; private set; }
 
-    public string? Run()
+    internal string? Run()
     {
         var currentFrame = CurrentFrame();
         var ins = currentFrame.Instructions().AsSpan();
@@ -244,7 +253,7 @@ public class Vm
                 {
                     var builtinIndex = ins[ip + 1];
                     currentFrame.Ip += 1;
-                    var definition = Builtins.ByIndex(builtinIndex);
+                    var definition = _builtins[builtinIndex];
                     var err = Push(definition);
                     if (!string.IsNullOrEmpty(err))
                         return err;

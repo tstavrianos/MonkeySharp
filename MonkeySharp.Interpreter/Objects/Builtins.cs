@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace MonkeySharp.Interpreter.Objects;
 
-public static class Builtins
+internal static class Builtins
 {
     private static readonly (string name, int arity, Value builtin)[] Data =
     [
@@ -115,22 +115,42 @@ public static class Builtins
         ),
     ];
 
-    public static bool TryGet(string name, out Value ret)
+    internal static bool TryGet(string name, out Value value)
     {
-        ret = default;
-        for (var i = 0; i < Data.Length; i++)
-            if (Data[i].name.Equals(name))
+        foreach (var (n, _, builtin) in Data)
+        {
+            if (n == name)
             {
-                ret = Data[i].builtin;
+                value = builtin;
                 return true;
             }
-
+        }
+        value = Value.NullValue;
         return false;
     }
 
-    public static IEnumerable<(string, int)> NamesAndArguments()
+    internal static void RegisterDefaults(SymbolTable symbolTable)
     {
-        foreach (var (key, arity, _) in Data)
-            yield return (key, arity);
+        foreach (var (name, _, builtin) in Data)
+            symbolTable.Set(name, builtin);
+    }
+
+    internal static Value CreateHostBuiltin(
+        string name,
+        int arity,
+        Func<IReadOnlyList<Value>, Value> function
+    )
+    {
+        return Value.Builtin(args =>
+        {
+            if (arity >= 0 && args.Count != arity)
+            {
+                return Value.Error(
+                    $"wrong number of arguments for '{name}'. want={arity}, got={args.Count}"
+                );
+            }
+
+            return function(args);
+        });
     }
 }

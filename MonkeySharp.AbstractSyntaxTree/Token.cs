@@ -1,4 +1,4 @@
-﻿namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree;
 
 /// <summary>
 /// Represents a lexical token with a specific type and associated literal value.
@@ -6,7 +6,7 @@
 /// <remarks>A token is typically produced by a lexer or tokenizer as part of parsing source text. Each
 /// token consists of a type, indicating its syntactic role, and a literal string, representing the exact text
 /// matched in the input.</remarks>
-public readonly record struct Token
+internal readonly record struct Token
 {
     /// <summary>
     /// Represents the type of token associated with this instance.

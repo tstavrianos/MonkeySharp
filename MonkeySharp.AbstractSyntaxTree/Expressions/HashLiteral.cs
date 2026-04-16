@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
@@ -11,7 +11,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// </summary>
 /// <param name="token">The token representing the hash literal's opening brace.</param>
 /// <param name="pairs">The dictionary of key-value expression pairs that make up the hash literal.</param>
-public sealed class HashLiteral(Token token, IReadOnlyDictionary<Expression, Expression> pairs)
+internal sealed class HashLiteral(Token token, IReadOnlyDictionary<Expression, Expression> pairs)
     : Expression(token)
 {
     /// <summary>

@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// </summary>
 /// <param name="token">The token representing the integer literal in the source code.</param>
 /// <param name="value">The parsed integer value.</param>
-public sealed class IntegerLiteral(Token token, long value) : Expression(token)
+internal sealed class IntegerLiteral(Token token, long value) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

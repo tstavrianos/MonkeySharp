@@ -2,11 +2,11 @@
 
 namespace MonkeySharp.VirtualMachine;
 
-public class CompilationScope
+internal sealed class CompilationScope
 {
-    public List<byte> Instructions { get; }
-    public EmittedInstruction LastInstruction { get; set; }
-    public EmittedInstruction PreviousInstruction { get; set; }
+    internal List<byte> Instructions { get; }
+    internal EmittedInstruction LastInstruction { get; set; }
+    internal EmittedInstruction PreviousInstruction { get; set; }
 
     internal CompilationScope()
     {

@@ -5,7 +5,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Serialization;
 /// <summary>
 /// Extension methods for convenient AST serialization and deserialization.
 /// </summary>
-public static class AstSerializationExtensions
+internal static class AstSerializationExtensions
 {
     /// <summary>
     /// Serializes the program node to a binary stream.

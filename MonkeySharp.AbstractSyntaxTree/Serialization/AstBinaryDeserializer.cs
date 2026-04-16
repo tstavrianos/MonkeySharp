@@ -9,7 +9,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Serialization;
 /// <summary>
 /// Deserializes AST nodes from binary format created by AstBinarySerializer.
 /// </summary>
-public class AstBinaryDeserializer
+internal class AstBinaryDeserializer
 {
     private readonly BinaryReader _reader;
 

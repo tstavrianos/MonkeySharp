@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
@@ -12,7 +12,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// nodes for statements and expressions. It collects any syntax errors encountered during parsing, which can be
 /// accessed via the Errors property. The Parser is not thread-safe and is intended for single-threaded
 /// use.</remarks>
-public class Parser
+internal class Parser
 {
     private delegate Expression? PrefixParseFn();
 

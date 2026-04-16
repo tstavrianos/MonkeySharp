@@ -1,11 +1,11 @@
-﻿namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree;
 
 /// <summary>
 /// Represents an abstract base node in the Abstract Syntax Tree (AST).
 /// All AST nodes inherit from this class to provide common functionality for token management and string representation.
 /// </summary>
 /// <param name="token">The token associated with this AST node.</param>
-public abstract class Node(Token token)
+internal abstract class Node(Token token)
 {
     /// <summary>
     /// Gets the token associated with this AST node.

@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -10,7 +10,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="left">The left operand expression.</param>
 /// <param name="operator">The operator string (e.g., "+", "-", "*", "/", "==", "!=").</param>
 /// <param name="right">The right operand expression.</param>
-public sealed class InfixExpression(Token token, Expression left, string @operator, Expression right)
+internal sealed class InfixExpression(Token token, Expression left, string @operator, Expression right)
     : Expression(token)
 {
     /// <summary>

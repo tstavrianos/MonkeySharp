@@ -1,6 +1,6 @@
-﻿namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree;
 
-public enum ExpressionType : byte
+internal enum ExpressionType : byte
 {
     Array = 1,
     Boolean = 2,

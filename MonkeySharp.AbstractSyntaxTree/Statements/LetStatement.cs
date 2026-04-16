@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Expressions;
+using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Statements;
@@ -10,7 +10,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// <param name="token">The token associated with this statement (the 'let' keyword).</param>
 /// <param name="name">The identifier being bound in this let statement.</param>
 /// <param name="value">The expression whose value will be assigned to the identifier.</param>
-public sealed class LetStatement(Token token, Identifier name, Expression value) : Statement(token)
+internal sealed class LetStatement(Token token, Identifier name, Expression value) : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.

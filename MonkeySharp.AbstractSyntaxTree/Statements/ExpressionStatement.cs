@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Statements;
 
@@ -8,7 +8,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// </summary>
 /// <param name="token">The token associated with this statement.</param>
 /// <param name="expression">The expression that forms this statement.</param>
-public sealed class ExpressionStatement(Token token, Expression expression) : Statement(token)
+internal sealed class ExpressionStatement(Token token, Expression expression) : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.

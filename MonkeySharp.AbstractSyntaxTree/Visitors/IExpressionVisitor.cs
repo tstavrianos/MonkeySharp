@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Expressions;
+using MonkeySharp.AbstractSyntaxTree.Expressions;
 
 namespace MonkeySharp.AbstractSyntaxTree.Visitors;
 
@@ -6,7 +6,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Visitors;
 /// Defines a visitor interface for traversing and processing expression nodes in the abstract syntax tree.
 /// Implements the Visitor pattern for type-safe operations on different expression types without return values.
 /// </summary>
-public interface IExpressionVisitor
+internal interface IExpressionVisitor
 {
     /// <summary>
     /// Visits an identifier expression node.
@@ -86,7 +86,7 @@ public interface IExpressionVisitor
 /// Implements the Visitor pattern for type-safe operations on different expression types with return values of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The return type of the visit operations.</typeparam>
-public interface IExpressionVisitor<out T>
+internal interface IExpressionVisitor<out T>
 {
     /// <summary>
     /// Visits an identifier expression node.

@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// </summary>
 /// <param name="token">The token representing the string literal in the source code.</param>
 /// <param name="currentLiteral">The parsed string value.</param>
-public sealed class StringLiteral(Token token, string currentLiteral) : Expression(token)
+internal sealed class StringLiteral(Token token, string currentLiteral) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 namespace MonkeySharp.VirtualMachine.Objects;
 
-public enum ValueKind
+internal enum ValueKind
 {
     Int,
     String,
@@ -20,7 +20,7 @@ public enum ValueKind
 }
 
 // Dedicated classes to avoid tuple boxing
-public sealed class CompiledFunctionData
+internal sealed class CompiledFunctionData
 {
     public byte[] Instructions { get; }
     public int NumLocals { get; }
@@ -34,7 +34,7 @@ public sealed class CompiledFunctionData
     }
 }
 
-public sealed class ClosureData
+internal sealed class ClosureData
 {
     public Value Function { get; }
     public Value[] Free { get; }
@@ -46,7 +46,7 @@ public sealed class ClosureData
     }
 }
 
-public readonly struct Value : IEquatable<Value>
+internal readonly struct Value : IEquatable<Value>
 {
     public static readonly Value NullValue = Null();
     public static readonly Value True = Boolean(true);
@@ -64,37 +64,49 @@ public readonly struct Value : IEquatable<Value>
         _objValue = o;
     }
 
-    public string Type =>
-        _kind switch
+    public string Type
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
         {
-            ValueKind.Int => "INTEGER",
-            ValueKind.String => "STRING",
-            ValueKind.Boolean => "BOOLEAN",
-            ValueKind.Null => "NULL",
-            ValueKind.Error => "ERROR",
-            ValueKind.Array => "ARRAY",
-            ValueKind.Hash => "HASH",
-            ValueKind.Builtin => "BUILTIN",
-            ValueKind.CompiledFunction => "COMPILED_FUNCTION_OBJ",
-            ValueKind.Closure => "CLOSURE",
-            _ => "UNKNOWN",
-        };
+            return _kind switch
+            {
+                ValueKind.Int => "INTEGER",
+                ValueKind.String => "STRING",
+                ValueKind.Boolean => "BOOLEAN",
+                ValueKind.Null => "NULL",
+                ValueKind.Error => "ERROR",
+                ValueKind.Array => "ARRAY",
+                ValueKind.Hash => "HASH",
+                ValueKind.Builtin => "BUILTIN",
+                ValueKind.CompiledFunction => "COMPILED_FUNCTION_OBJ",
+                ValueKind.Closure => "CLOSURE",
+                _ => "UNKNOWN",
+            };
+        }
+    }
 
-    public string Inspect =>
-        _kind switch
+    public string Inspect
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get
         {
-            ValueKind.Int => _intValue.ToString(),
-            ValueKind.String => (string)_objValue!,
-            ValueKind.Boolean => _intValue != 0 ? "true" : "false",
-            ValueKind.Null => "null",
-            ValueKind.Error => (string)_objValue!,
-            ValueKind.Array => ArrayInspect,
-            ValueKind.Hash => HashInspect,
-            ValueKind.Builtin => "<builtin function>",
-            ValueKind.CompiledFunction => CompiledFunctionInspect,
-            ValueKind.Closure => ClosureInspect,
-            _ => _objValue?.ToString() ?? "null",
-        };
+            return _kind switch
+            {
+                ValueKind.Int => _intValue.ToString(),
+                ValueKind.String => (string)_objValue!,
+                ValueKind.Boolean => _intValue != 0 ? "true" : "false",
+                ValueKind.Null => "null",
+                ValueKind.Error => (string)_objValue!,
+                ValueKind.Array => ArrayInspect,
+                ValueKind.Hash => HashInspect,
+                ValueKind.Builtin => "<builtin function>",
+                ValueKind.CompiledFunction => CompiledFunctionInspect,
+                ValueKind.Closure => ClosureInspect,
+                _ => _objValue?.ToString() ?? "null",
+            };
+        }
+    }
 
     // Basic type factory methods
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -128,21 +140,25 @@ public readonly struct Value : IEquatable<Value>
     }
 
     // Complex type factory methods
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Array(IReadOnlyList<Value> elements)
     {
         return new Value(ValueKind.Array, 0, new List<Value>(elements));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Hash(Dictionary<HashKey, (Value Key, Value Value)> pairs)
     {
         return new Value(ValueKind.Hash, 0, pairs);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Builtin(Func<IReadOnlyList<Value>, Value> function)
     {
         return new Value(ValueKind.Builtin, 0, function);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value CompiledFunction(byte[] instructions, int numLocals, int numParameters)
     {
         return new Value(
@@ -152,6 +168,7 @@ public readonly struct Value : IEquatable<Value>
         );
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value Closure(Value compiledFunction, Value[] freeVariables)
     {
         return new Value(ValueKind.Closure, 0, new ClosureData(compiledFunction, freeVariables));
@@ -164,7 +181,11 @@ public readonly struct Value : IEquatable<Value>
         get => _kind == ValueKind.Int ? _intValue : 0;
     }
 
-    public string? StringValue => _kind == ValueKind.String ? (string)_objValue! : null;
+    public string? StringValue
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _kind == ValueKind.String ? (string)_objValue! : null;
+    }
 
     public bool BooleanValue
     {
@@ -179,18 +200,32 @@ public readonly struct Value : IEquatable<Value>
     }
 
     // Complex value accessors - now returning dedicated classes instead of tuples
-    public List<Value>? ArrayElements => _kind == ValueKind.Array ? (List<Value>)_objValue! : null;
+    public List<Value>? ArrayElements
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _kind == ValueKind.Array ? (List<Value>)_objValue! : null;
+    }
 
     public Dictionary<HashKey, (Value Key, Value Value)>? HashPairs =>
         _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>)_objValue! : null;
 
-    public Func<IReadOnlyList<Value>, Value>? BuiltinFunction =>
-        _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>)_objValue! : null;
+    public Func<IReadOnlyList<Value>, Value>? BuiltinFunction
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>)_objValue! : null;
+    }
 
-    public CompiledFunctionData? CompiledFunctionData =>
-        _kind == ValueKind.CompiledFunction ? (CompiledFunctionData)_objValue! : null;
+    public CompiledFunctionData? CompiledFunctionData
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _kind == ValueKind.CompiledFunction ? (CompiledFunctionData)_objValue! : null;
+    }
 
-    public ClosureData? ClosureData => _kind == ValueKind.Closure ? (ClosureData)_objValue! : null;
+    public ClosureData? ClosureData
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _kind == ValueKind.Closure ? (ClosureData)_objValue! : null;
+    }
 
     // Helper methods for type checking
     public bool IsInteger
@@ -288,9 +323,17 @@ public readonly struct Value : IEquatable<Value>
         }
     }
 
-    private string CompiledFunctionInspect => $"CompiledFunction[{GetHashCode()}]";
+    private string CompiledFunctionInspect
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => $"CompiledFunction[{GetHashCode()}]";
+    }
 
-    private string ClosureInspect => $"Closure[{GetHashCode()}]";
+    private string ClosureInspect
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => $"Closure[{GetHashCode()}]";
+    }
 
     public bool IsHashable
     {
@@ -333,6 +376,7 @@ public readonly struct Value : IEquatable<Value>
             && Equals(_objValue, other._objValue);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
         if (obj is null)
@@ -340,6 +384,7 @@ public readonly struct Value : IEquatable<Value>
         return obj is Value other && Equals(other);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode()
     {
         return HashCode.Combine((int)_kind, _intValue, _objValue);

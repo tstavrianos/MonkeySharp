@@ -1,6 +1,6 @@
 ﻿namespace MonkeySharp.VirtualMachine;
 
-public enum OpCode : byte
+internal enum OpCode : byte
 {
     Constant,
     Add,
@@ -32,5 +32,5 @@ public enum OpCode : byte
     Closure,
     GetFree,
     CurrentClosure,
-    TailCall
+    TailCall,
 }

@@ -2,7 +2,7 @@
 
 namespace MonkeySharp.VirtualMachine;
 
-public readonly struct Symbol : IEquatable<Symbol>
+internal readonly struct Symbol : IEquatable<Symbol>
 {
     public readonly string Name;
     public readonly SymbolScope Scope;

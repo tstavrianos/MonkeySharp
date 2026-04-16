@@ -6,7 +6,7 @@ using System.Text;
 
 namespace MonkeySharp.VirtualMachine;
 
-public static class Code
+internal static class Code
 {
     private static readonly Dictionary<OpCode, Definition> Definitions = new()
     {

@@ -8,7 +8,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// <summary>
 /// Performs security analysis on an AST to detect potential security issues.
 /// </summary>
-public class SecurityAnalyzer
+internal class SecurityAnalyzer
 {
     private class FunctionInfo
     {

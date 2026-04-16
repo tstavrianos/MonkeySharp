@@ -1,11 +1,11 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace MonkeySharp.AbstractSyntaxTree.Analyzers;
 
 /// <summary>
 /// Comprehensive static analysis combining semantic, security, quality, and data flow analysis.
 /// </summary>
-public class StaticAnalyzer
+internal class StaticAnalyzer
 {
     private readonly SemanticAnalyzer _semanticAnalyzer = new();
     private readonly SecurityAnalyzer _securityAnalyzer = new();

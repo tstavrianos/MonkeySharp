@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -6,7 +6,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// Represents a boolean literal expression in the abstract syntax tree.
 /// This class uses the flyweight pattern with pre-defined instances for true and false values.
 /// </summary>
-public sealed class BooleanLiteral : Expression
+internal sealed class BooleanLiteral : Expression
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

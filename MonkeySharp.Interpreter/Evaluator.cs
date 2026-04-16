@@ -9,15 +9,25 @@ using MonkeySharp.Interpreter.Objects;
 
 namespace MonkeySharp.Interpreter;
 
-public static class Evaluator
+internal static class Evaluator
 {
-    // PUBLIC API
-    public static Value Evaluate(ParsedObject parsedObject, SymbolTable? symbolTable = null)
+    internal static MonkeyValue Evaluate(
+        ParseResult parseResult,
+        InterpreterSession? session = null
+    )
     {
-        return Eval(parsedObject.ProgramNode, symbolTable ?? new SymbolTable());
+        if (!parseResult.IsValid)
+            return MonkeyValue.Error(string.Join("; ", parseResult.Diagnostics));
+
+        return new MonkeyValue(
+            Eval(
+                parseResult.ProgramNode!,
+                session?.SymbolTable ?? InterpreterSession.CreateDefaultSymbolTable()
+            )
+        );
     }
 
-    public static Value Eval(Node? node, SymbolTable symbolTable)
+    internal static Value Eval(Node? node, SymbolTable symbolTable)
     {
         switch (node)
         {
@@ -335,9 +345,9 @@ public static class Evaluator
         var (val, ok) = symbolTable.Get(identifier.Value);
         if (ok)
             return val;
-        if (!Builtins.TryGet(identifier.Value, out var builtinValue))
-            return Value.Error($"identifier not found: {identifier.Value}");
-        return builtinValue;
+        if (Builtins.TryGet(identifier.Value, out var builtinValue))
+            return builtinValue;
+        return Value.Error($"identifier not found: {identifier.Value}");
     }
 
     private static Value EvalBlockStatement(BlockStatement blockStatement, SymbolTable symbolTable)

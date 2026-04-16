@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// Expressions are constructs that evaluate to a value.
 /// </summary>
 /// <param name="token">The token associated with this expression node.</param>
-public abstract class Expression(Token token) : Node(token)
+internal abstract class Expression(Token token) : Node(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

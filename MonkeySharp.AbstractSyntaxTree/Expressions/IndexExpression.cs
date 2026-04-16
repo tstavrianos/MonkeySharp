@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -9,7 +9,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token representing this expression.</param>
 /// <param name="left">The expression being indexed (e.g., the array or hash).</param>
 /// <param name="index">The expression used as the index or key.</param>
-public sealed class IndexExpression(Token token, Expression left, Expression index) : Expression(token)
+internal sealed class IndexExpression(Token token, Expression left, Expression index) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

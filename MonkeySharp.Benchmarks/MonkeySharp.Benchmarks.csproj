@@ -11,6 +11,7 @@
 		<RunAnalyzersDuringBuild>true</RunAnalyzersDuringBuild>
 		<RunAnalyzersDuringLiveAnalysis>true</RunAnalyzersDuringLiveAnalysis>
 		<NoWarn>$(NoWarn);NETSDK1206</NoWarn>
+		<IsPackable>false</IsPackable>
 
 		<DefineConstants Condition="'$(CheckCacheMisses)' == 'true'"
 			>CHECK_CACHE_MISSES

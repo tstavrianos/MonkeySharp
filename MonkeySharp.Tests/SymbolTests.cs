@@ -11,28 +11,35 @@ public class SymbolTests
     [
         new object[]
         {
-            new[] {"a", "b"},
-            new KeyValuePair<string, Symbol>[]
+            new[] { "a", "b" },
+            new (string Name, int Scope, int Index)[]
             {
-                new("a", new Symbol("a", SymbolScope.Global, 0)),
-                new("b", new Symbol("b", SymbolScope.Global, 1))
-            }
-        }
+                ("a", (int)SymbolScope.Global, 0),
+                ("b", (int)SymbolScope.Global, 1),
+            },
+        },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestDefineCases))]
-    public void TestDefine(string[] symbols, KeyValuePair<string, Symbol>[] expected)
+    public void TestDefine(string[] symbols, (string Name, int Scope, int Index)[] expected)
     {
         var global = new SymbolTable();
         Assert.That(expected, Has.Length.EqualTo(symbols.Length));
         for (var i = 0; i < symbols.Length; i++)
         {
             var expectSymbol = expected[i];
+            var expectedSymbol = new Symbol(
+                expectSymbol.Name,
+                (SymbolScope)expectSymbol.Scope,
+                expectSymbol.Index
+            );
 
             var symbol = global.Define(symbols[i]);
-            if (symbol != expectSymbol.Value)
-                Assert.Fail($"expected {expectSymbol.Key} to resolve to {expectSymbol.Value}, got={symbol}");
+            if (symbol != expectedSymbol)
+                Assert.Fail(
+                    $"expected {expectSymbol.Name} to resolve to {expectedSymbol}, got={symbol}"
+                );
         }
 
         Assert.Pass();
@@ -40,22 +47,25 @@ public class SymbolTests
 
     [Test]
     [TestCaseSource(nameof(TestDefineCases))]
-    public void TestResolveGlobal(string[] symbols, KeyValuePair<string, Symbol>[] expected)
+    public void TestResolveGlobal(string[] symbols, (string Name, int Scope, int Index)[] expected)
     {
         var global = new SymbolTable();
         Assert.That(expected, Has.Length.EqualTo(symbols.Length));
 
-        foreach (var symbol in symbols) global.Define(symbol);
+        foreach (var symbol in symbols)
+            global.Define(symbol);
 
         foreach (var sym in expected)
         {
-            if (!global.Resolve(sym.Key, out var result))
+            var expectedSymbol = new Symbol(sym.Name, (SymbolScope)sym.Scope, sym.Index);
+            if (!global.Resolve(sym.Name, out var result))
             {
-                Assert.Fail($"name {sym.Key} not resolvable");
+                Assert.Fail($"name {sym.Name} not resolvable");
                 continue;
             }
 
-            if (result != sym.Value) Assert.Fail($"expected {sym.Key} to resolve to {sym.Value}, got={result}");
+            if (result != expectedSymbol)
+                Assert.Fail($"expected {sym.Name} to resolve to {expectedSymbol}, got={result}");
         }
 
         Assert.Pass();
@@ -65,40 +75,47 @@ public class SymbolTests
     [
         new object[]
         {
-            new[] {"a", "b"},
-            new[] {"c", "d"},
-            new KeyValuePair<string, Symbol>[]
+            new[] { "a", "b" },
+            new[] { "c", "d" },
+            new (string Name, int Scope, int Index)[]
             {
-                new("a", new Symbol("a", SymbolScope.Global, 0)),
-                new("b", new Symbol("b", SymbolScope.Global, 1)),
-                new("c", new Symbol("c", SymbolScope.Local, 0)),
-                new("d", new Symbol("d", SymbolScope.Local, 1))
-            }
-        }
+                ("a", (int)SymbolScope.Global, 0),
+                ("b", (int)SymbolScope.Global, 1),
+                ("c", (int)SymbolScope.Local, 0),
+                ("d", (int)SymbolScope.Local, 1),
+            },
+        },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestResolveLocalCases))]
-    public void TestResolveLocal(string[] globalSymbols, string[] localSymbols,
-        KeyValuePair<string, Symbol>[] expected)
+    public void TestResolveLocal(
+        string[] globalSymbols,
+        string[] localSymbols,
+        (string Name, int Scope, int Index)[] expected
+    )
     {
         var global = new SymbolTable();
         Assert.That(expected, Has.Length.EqualTo(globalSymbols.Length + localSymbols.Length));
 
-        foreach (var symbol in globalSymbols) global.Define(symbol);
+        foreach (var symbol in globalSymbols)
+            global.Define(symbol);
 
         var local = new SymbolTable(global);
-        foreach (var symbol in localSymbols) local.Define(symbol);
+        foreach (var symbol in localSymbols)
+            local.Define(symbol);
 
         foreach (var sym in expected)
         {
-            if (!local.Resolve(sym.Key, out var result))
+            var expectedSymbol = new Symbol(sym.Name, (SymbolScope)sym.Scope, sym.Index);
+            if (!local.Resolve(sym.Name, out var result))
             {
-                Assert.Fail($"name {sym.Key} not resolvable");
+                Assert.Fail($"name {sym.Name} not resolvable");
                 continue;
             }
 
-            if (result != sym.Value) Assert.Fail($"expected {sym.Key} to resolve to {sym.Value}, got={result}");
+            if (result != expectedSymbol)
+                Assert.Fail($"expected {sym.Name} to resolve to {expectedSymbol}, got={result}");
         }
 
         Assert.Pass();

@@ -10,7 +10,8 @@ public class LexerTests
     [
         new object[]
         {
-            "=+(){},;", new (TokenType, string)[]
+            "=+(){},;",
+            new (TokenType, string)[]
             {
                 new(TokenType.Assign, "="),
                 new(TokenType.Plus, "+"),
@@ -20,8 +21,8 @@ public class LexerTests
                 new(TokenType.RightBrace, "}"),
                 new(TokenType.Comma, ","),
                 new(TokenType.Semicolon, ";"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
@@ -69,8 +70,8 @@ let result = add(five, ten);",
                 new(TokenType.Identifier, "ten"),
                 new(TokenType.RightParen, ")"),
                 new(TokenType.Semicolon, ";"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
@@ -90,8 +91,8 @@ let result = add(five, ten);",
                 new(TokenType.GreaterThan, ">"),
                 new(TokenType.Integer, "5"),
                 new(TokenType.Semicolon, ";"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
@@ -115,8 +116,8 @@ let result = add(five, ten);",
                 new(TokenType.False, "false"),
                 new(TokenType.Semicolon, ";"),
                 new(TokenType.RightBrace, "}"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
@@ -131,8 +132,8 @@ let result = add(five, ten);",
                 new(TokenType.NotEqual, "!="),
                 new(TokenType.Integer, "9"),
                 new(TokenType.Semicolon, ";"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
@@ -141,39 +142,42 @@ let result = add(five, ten);",
             {
                 new(TokenType.String, "foobar"),
                 new(TokenType.String, "foo bar"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
-            "[1, 2]", new (TokenType, string)[]
+            "[1, 2]",
+            new (TokenType, string)[]
             {
                 new(TokenType.LeftBracket, "["),
                 new(TokenType.Integer, "1"),
                 new(TokenType.Comma, ","),
                 new(TokenType.Integer, "2"),
                 new(TokenType.RightBracket, "]"),
-                new(TokenType.EndOfFile, "")
-            }
+                new(TokenType.EndOfFile, ""),
+            },
         },
         new object[]
         {
-            "{\"foo\": \"bar\"}", new (TokenType, string)[]
+            "{\"foo\": \"bar\"}",
+            new (TokenType, string)[]
             {
                 new(TokenType.LeftBrace, "{"),
                 new(TokenType.String, "foo"),
                 new(TokenType.Colon, ":"),
                 new(TokenType.String, "bar"),
                 new(TokenType.RightBrace, "}"),
-                new(TokenType.EndOfFile, "")
-            }
-        }
+                new(TokenType.EndOfFile, ""),
+            },
+        },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestNextTokenCases))]
-    public void TestNextToken(string input, (TokenType, string)[] expectedResult)
+    public void TestNextToken(string input, object expectedResultObj)
     {
+        var expectedResult = ((TokenType, string)[])expectedResultObj;
         var lexer = new Lexer(input);
         for (var i = 0; i < expectedResult.Length; i++)
         {
@@ -184,13 +188,17 @@ let result = add(five, ten);",
 
             if (!Equals(next.Type, expectedToken))
             {
-                Assert.Fail($"tests[{i}] - tokentype wrong. expected={expectedToken}, got={next.Type}");
+                Assert.Fail(
+                    $"tests[{i}] - tokentype wrong. expected={expectedToken}, got={next.Type}"
+                );
                 return;
             }
 
             if (!Equals(next.Literal, expectedTokenString))
             {
-                Assert.Fail($"tests[{i}] - literal wrong. expected={expectedTokenString}, got={next.Literal}");
+                Assert.Fail(
+                    $"tests[{i}] - literal wrong. expected={expectedTokenString}, got={next.Literal}"
+                );
                 return;
             }
         }

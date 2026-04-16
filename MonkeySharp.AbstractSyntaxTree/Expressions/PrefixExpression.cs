@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -9,7 +9,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token representing the prefix operator.</param>
 /// <param name="operator">The prefix operator string (e.g., "-", "!", "+").</param>
 /// <param name="right">The expression that the prefix operator is applied to.</param>
-public sealed class PrefixExpression(Token token, string @operator, Expression right) : Expression(token)
+internal sealed class PrefixExpression(Token token, string @operator, Expression right) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

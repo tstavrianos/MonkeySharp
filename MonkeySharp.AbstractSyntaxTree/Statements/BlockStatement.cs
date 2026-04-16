@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
 
@@ -10,7 +10,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// </summary>
 /// <param name="token">The token representing the opening brace of the block.</param>
 /// <param name="statements">The collection of statements contained within the block. If null, an empty collection is used.</param>
-public sealed class BlockStatement(Token token, IReadOnlyList<Statement> statements) : Statement(token)
+internal sealed class BlockStatement(Token token, IReadOnlyList<Statement> statements) : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.

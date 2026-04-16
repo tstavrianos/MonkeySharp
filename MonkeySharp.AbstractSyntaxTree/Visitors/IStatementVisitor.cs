@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Statements;
+using MonkeySharp.AbstractSyntaxTree.Statements;
 
 namespace MonkeySharp.AbstractSyntaxTree.Visitors;
 
@@ -6,7 +6,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Visitors;
 /// Defines a visitor interface for traversing and processing statement nodes in the abstract syntax tree.
 /// Implements the Visitor pattern for statement-based AST nodes without returning a value.
 /// </summary>
-public interface IStatementVisitor
+internal interface IStatementVisitor
 {
     /// <summary>
     /// Visits a let statement node that declares and optionally initializes a variable.
@@ -38,7 +38,7 @@ public interface IStatementVisitor
 /// Implements the Visitor pattern for statement-based AST nodes with a return value of type <typeparamref name="T"/>.
 /// </summary>
 /// <typeparam name="T">The type of value returned by the visitor methods.</typeparam>
-public interface IStatementVisitor<out T>
+internal interface IStatementVisitor<out T>
 {
     /// <summary>
     /// Visits a let statement node that declares and optionally initializes a variable.

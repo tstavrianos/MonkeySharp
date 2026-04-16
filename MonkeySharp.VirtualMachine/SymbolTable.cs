@@ -2,7 +2,7 @@
 
 namespace MonkeySharp.VirtualMachine;
 
-public class SymbolTable
+internal sealed class SymbolTable
 {
     private readonly Dictionary<string, Symbol> _store = [];
     public int NumDefinitions { get; private set; }
@@ -28,22 +28,41 @@ public class SymbolTable
 
     public bool Resolve(string name, out Symbol result)
     {
-        var ok = _store.TryGetValue(name, out result);
-        if (!ok && Outer != null)
+        // Walk outward iteratively to avoid recursion overhead and deep-stack risk.
+        var missedScopes = new List<SymbolTable>();
+        var current = this;
+
+        while (current != null)
         {
-            ok = Outer.Resolve(name, out result);
-            if (!ok)
-                return false;
+            if (current._store.TryGetValue(name, out var found))
+            {
+                if (current == this)
+                {
+                    result = found;
+                    return true;
+                }
 
-            if (result.Scope == SymbolScope.Global || result.Scope == SymbolScope.Builtin)
+                if (found.Scope == SymbolScope.Global || found.Scope == SymbolScope.Builtin)
+                {
+                    result = found;
+                    return true;
+                }
+
+                // Mirror recursive unwind behavior: define free symbols from nearest outer
+                // miss toward the current scope.
+                for (var i = missedScopes.Count - 1; i >= 0; i--)
+                    found = missedScopes[i].DefineFree(found);
+
+                result = found;
                 return true;
+            }
 
-            var free = DefineFree(result);
-            result = free;
-            return true;
+            missedScopes.Add(current);
+            current = current.Outer;
         }
 
-        return ok;
+        result = default;
+        return false;
     }
 
     internal Symbol DefineBuiltin(int index, string name)

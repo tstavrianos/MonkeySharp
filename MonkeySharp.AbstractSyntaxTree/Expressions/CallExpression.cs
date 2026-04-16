@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
@@ -12,7 +12,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token associated with this call expression.</param>
 /// <param name="function">The expression representing the function to be called.</param>
 /// <param name="arguments">A read-only list of expressions representing the arguments passed to the function.</param>
-public sealed class CallExpression(Token token, Expression function, IReadOnlyList<Expression> arguments)
+internal sealed class CallExpression(Token token, Expression function, IReadOnlyList<Expression> arguments)
     : Expression(token)
 {
     /// <summary>

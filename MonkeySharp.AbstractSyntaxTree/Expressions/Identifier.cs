@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 
@@ -8,7 +8,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// </summary>
 /// <param name="token">The token associated with this identifier expression.</param>
 /// <param name="value">The string value of the identifier name.</param>
-public sealed class Identifier(Token token, string value) : Expression(token)
+internal sealed class Identifier(Token token, string value) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

@@ -51,8 +51,10 @@ public sealed class MonkeyInteger : MonkeyObject, IHashable
         return "INTEGER";
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is MonkeyInteger other && Value == other.Value;
     }
 
@@ -69,7 +71,7 @@ public sealed class MonkeyString : MonkeyObject, IHashable
 {
     public string Value { get; }
 
-    public MonkeyString(string value)
+    public MonkeyString(string? value)
     {
         Value = value ?? string.Empty;
     }
@@ -84,8 +86,10 @@ public sealed class MonkeyString : MonkeyObject, IHashable
         return "STRING";
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is MonkeyString other && Value == other.Value;
     }
 
@@ -125,8 +129,10 @@ public sealed class MonkeyBoolean : MonkeyObject, IHashable
         return "BOOLEAN";
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is MonkeyBoolean other && Value == other.Value;
     }
 
@@ -141,9 +147,7 @@ public sealed class MonkeyBoolean : MonkeyObject, IHashable
 /// </summary>
 public sealed class MonkeyNull : MonkeyObject
 {
-    private MonkeyNull()
-    {
-    }
+    private MonkeyNull() { }
 
     public static readonly MonkeyNull Instance = new();
 
@@ -165,7 +169,7 @@ public sealed class MonkeyArray : MonkeyObject
 {
     public MonkeyObject[] Elements { get; }
 
-    public MonkeyArray(MonkeyObject[] elements)
+    public MonkeyArray(MonkeyObject[]? elements)
     {
         Elements = elements ?? [];
     }
@@ -189,7 +193,7 @@ public sealed class MonkeyHash : MonkeyObject
 {
     public Dictionary<MonkeyObject, MonkeyObject> Pairs { get; }
 
-    public MonkeyHash(Dictionary<MonkeyObject, MonkeyObject> pairs)
+    public MonkeyHash(Dictionary<MonkeyObject, MonkeyObject>? pairs)
     {
         Pairs = pairs ?? [];
     }
@@ -197,7 +201,8 @@ public sealed class MonkeyHash : MonkeyObject
     public override string Inspect()
     {
         var pairs = new List<string>();
-        foreach (var kvp in Pairs) pairs.Add($"{kvp.Key.Inspect()}: {kvp.Value.Inspect()}");
+        foreach (var kvp in Pairs)
+            pairs.Add($"{kvp.Key.Inspect()}: {kvp.Value.Inspect()}");
         return $"{{{string.Join(", ", pairs)}}}";
     }
 
@@ -210,15 +215,16 @@ public sealed class MonkeyHash : MonkeyObject
 /// <summary>
 /// Represents a compiled function.
 /// </summary>
-public sealed class MonkeyFunction : MonkeyObject
+internal sealed class MonkeyFunction : MonkeyObject
 {
     public Delegate CompiledFunction { get; }
     public string Name { get; }
     public int ParameterCount { get; }
 
-    public MonkeyFunction(Delegate compiledFunction, string name, int parameterCount)
+    public MonkeyFunction(Delegate? compiledFunction, string? name, int parameterCount)
     {
-        CompiledFunction = compiledFunction ?? throw new ArgumentNullException(nameof(compiledFunction));
+        CompiledFunction =
+            compiledFunction ?? throw new ArgumentNullException(nameof(compiledFunction));
         Name = name ?? "<anonymous>";
         ParameterCount = parameterCount;
     }
@@ -227,10 +233,12 @@ public sealed class MonkeyFunction : MonkeyObject
     /// Validates the number of arguments matches the expected parameter count.
     /// Returns null if valid, or a MonkeyError if invalid.
     /// </summary>
-    public MonkeyError ValidateArgumentCount(int argumentCount)
+    public MonkeyError? ValidateArgumentCount(int argumentCount)
     {
         if (argumentCount != ParameterCount)
-            return new MonkeyError($"wrong number of arguments. want={ParameterCount}, got={argumentCount}");
+            return new MonkeyError(
+                $"wrong number of arguments. want={ParameterCount}, got={argumentCount}"
+            );
         return null;
     }
 
@@ -249,7 +257,7 @@ public sealed class MonkeyError : MonkeyObject
 {
     public string Message { get; }
 
-    public MonkeyError(string message)
+    public MonkeyError(string? message)
     {
         Message = message ?? string.Empty;
     }

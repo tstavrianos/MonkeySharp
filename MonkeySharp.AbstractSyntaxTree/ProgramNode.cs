@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// Contains a collection of top-level statements that make up the program.
 /// </summary>
 /// <param name="statements">The collection of statements that comprise the program.</param>
-public class ProgramNode(IReadOnlyList<Statement> statements) : Node(default)
+internal class ProgramNode(IReadOnlyList<Statement> statements) : Node(default)
 {
     /// <summary>
     /// Gets the read-only collection of statements that make up the program.

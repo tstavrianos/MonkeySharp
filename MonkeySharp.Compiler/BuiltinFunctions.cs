@@ -5,7 +5,7 @@ namespace MonkeySharp.Compiler;
 /// <summary>
 /// Provides built-in runtime functions for MonkeySharp.
 /// </summary>
-public static class BuiltinFunctions
+internal static class BuiltinFunctions
 {
     /// <summary>
     /// Returns the length of a string or array.

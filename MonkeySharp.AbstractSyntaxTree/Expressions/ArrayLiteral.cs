@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
 
@@ -10,7 +10,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// </summary>
 /// <param name="token">The token representing the array literal's opening bracket.</param>
 /// <param name="elements">The collection of expressions that make up the array elements.</param>
-public sealed class ArrayLiteral(Token token, IReadOnlyList<Expression> elements) : Expression(token)
+internal sealed class ArrayLiteral(Token token, IReadOnlyList<Expression> elements) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.

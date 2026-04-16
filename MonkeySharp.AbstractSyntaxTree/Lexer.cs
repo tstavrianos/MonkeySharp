@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
@@ -11,7 +11,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// single- and multi-character tokens. When an unrecognized character is encountered, a token of type
 /// TokenType.Illegal is produced. The class is not thread-safe and should be used from a single thread at a
 /// time.</remarks>
-public class Lexer
+internal class Lexer
 {
     private static readonly Dictionary<string, TokenType> Keywords = new()
     {

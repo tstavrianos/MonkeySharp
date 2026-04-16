@@ -7,27 +7,54 @@ using MonkeySharp.VirtualMachine.Objects;
 
 namespace MonkeySharp.VirtualMachine;
 
-public class Compiler
+internal sealed class Compiler
 {
     private readonly List<Value> _constants;
     private SymbolTable _symbolTable;
 
     private readonly Stack<CompilationScope> _scopes = new();
 
-    public Compiler()
+    internal Compiler()
+        : this(GetDefaultBuiltins()) { }
+
+    internal Compiler(IReadOnlyList<(string name, int arity)> builtins)
     {
         _constants = [];
         _symbolTable = new SymbolTable();
-        foreach (var (name, i) in Builtins.Keys())
+        for (var i = 0; i < builtins.Count; i++)
+        {
+            var (name, _) = builtins[i];
             _symbolTable.DefineBuiltin(i, name);
+        }
+
         _scopes.Push(new CompilationScope());
     }
 
-    public Compiler(SymbolTable symbolTable, List<Value> constants)
+    internal Compiler(
+        SymbolTable symbolTable,
+        List<Value> constants,
+        IReadOnlyList<(string name, int arity)> builtins
+    )
     {
         _constants = constants;
         _symbolTable = symbolTable;
+
+        for (var i = 0; i < builtins.Count; i++)
+        {
+            var (name, _) = builtins[i];
+            _symbolTable.DefineBuiltin(i, name);
+        }
+
         _scopes.Push(new CompilationScope());
+    }
+
+    private static IReadOnlyList<(string name, int arity)> GetDefaultBuiltins()
+    {
+        var ret = new List<(string name, int arity)>(Builtins.Entries.Count);
+        foreach (var (name, arity, _) in Builtins.Entries)
+            ret.Add((name, arity));
+
+        return ret;
     }
 
     private List<byte> CurrentInstructions()
@@ -47,12 +74,12 @@ public class Compiler
         return _scopes.Pop().Instructions;
     }
 
-    public ByteCode ByteCode()
+    internal ByteCode ByteCode()
     {
         return new ByteCode(CurrentInstructions().ToArray(), _constants.ToArray());
     }
 
-    public string? Compile(Node node)
+    internal string? Compile(Node node)
     {
         return CompileNode(node, false);
     }

@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// <summary>
 /// Performs data flow analysis to detect uninitialized variables and other data flow issues.
 /// </summary>
-public class DataFlowAnalyzer
+internal class DataFlowAnalyzer
 {
     private enum VariableState
     {

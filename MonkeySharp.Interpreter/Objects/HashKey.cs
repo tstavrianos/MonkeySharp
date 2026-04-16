@@ -2,7 +2,7 @@
 
 namespace MonkeySharp.Interpreter.Objects;
 
-public readonly struct HashKey : IEquatable<HashKey>
+internal readonly struct HashKey : IEquatable<HashKey>
 {
     public string Type { get; }
 

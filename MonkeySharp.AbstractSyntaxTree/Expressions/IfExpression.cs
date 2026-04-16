@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using MonkeySharp.AbstractSyntaxTree.Statements;
 using MonkeySharp.AbstractSyntaxTree.Visitors;
 
@@ -11,7 +11,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="condition">The boolean expression that determines which branch to execute.</param>
 /// <param name="consequence">The block statement to execute when the condition is true.</param>
 /// <param name="alternative">The block statement to execute when the condition is false (optional).</param>
-public sealed class IfExpression(
+internal sealed class IfExpression(
     Token token,
     Expression condition,
     BlockStatement consequence,

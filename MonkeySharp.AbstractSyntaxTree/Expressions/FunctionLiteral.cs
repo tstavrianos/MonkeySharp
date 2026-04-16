@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using MonkeySharp.AbstractSyntaxTree.Statements;
@@ -13,7 +13,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token associated with this function literal (typically the 'fn' keyword).</param>
 /// <param name="parameters">The list of parameter identifiers for the function.</param>
 /// <param name="body">The block statement containing the function's body.</param>
-public sealed class FunctionLiteral(
+internal sealed class FunctionLiteral(
     Token token,
     IReadOnlyList<Identifier> parameters,
     BlockStatement body

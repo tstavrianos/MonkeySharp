@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -8,7 +8,7 @@ using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
-public class Optimizer
+internal class Optimizer
     : IExpressionVisitor<(Expression?, bool)>,
         IStatementVisitor<(Statement?, bool)>
 {

@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
-public enum TokenType
+internal enum TokenType
 {
     Illegal,
     EndOfFile,
@@ -44,7 +44,7 @@ public enum TokenType
     NotEqual
 }
 
-public static class TokenTypeExtensions
+internal static class TokenTypeExtensions
 {
     public static string String(this TokenType type)
     {

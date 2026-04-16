@@ -2,7 +2,7 @@
 
 namespace MonkeySharp.VirtualMachine;
 
-public readonly struct ByteCode
+internal readonly struct ByteCode
 {
     public readonly byte[] Instructions;
     public readonly Value[] Constants;

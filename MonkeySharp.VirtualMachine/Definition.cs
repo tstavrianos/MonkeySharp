@@ -1,6 +1,6 @@
 ﻿namespace MonkeySharp.VirtualMachine;
 
-public readonly struct Definition
+internal readonly struct Definition
 {
     public readonly string Name;
     public readonly int[] OperandWidths;

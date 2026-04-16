@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
 
@@ -7,7 +7,7 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// <summary>
 /// Performs static semantic analysis on an AST to detect errors before evaluation.
 /// </summary>
-public class SemanticAnalyzer
+internal class SemanticAnalyzer
 {
     /// <summary>
     /// Represents a scope during semantic analysis.

@@ -3,11 +3,11 @@ using MonkeySharp.VirtualMachine.Objects;
 
 namespace MonkeySharp.VirtualMachine;
 
-public class Frame
+internal sealed class Frame
 {
-    public Value Closure { get; internal set; }
-    public int Ip { get; set; }
-    public int BasePointer { get; }
+    internal Value Closure { get; set; }
+    internal int Ip { get; set; }
+    internal int BasePointer { get; }
 
     internal Frame(Value closure, int basePointer)
     {
@@ -17,7 +17,7 @@ public class Frame
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] Instructions()
+    internal byte[] Instructions()
     {
         return Closure.ClosureData!.Function.CompiledFunctionData!.Instructions;
     }

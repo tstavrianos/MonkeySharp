@@ -1,4 +1,4 @@
-﻿using MonkeySharp.AbstractSyntaxTree.Visitors;
+using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree.Statements;
 
@@ -8,7 +8,7 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// </summary>
 /// <param name="token">The token associated with this statement (the 'return' keyword).</param>
 /// <param name="returnValue">The expression whose value will be returned.</param>
-public sealed class ReturnStatement(Token token, Expression returnValue) : Statement(token)
+internal sealed class ReturnStatement(Token token, Expression returnValue) : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.
