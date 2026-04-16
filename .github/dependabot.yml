@@ -3,7 +3,7 @@ version: 2
 updates:
   - package-ecosystem: "nuget"
     directories:
-      - "/RogueLib.*"
+      - "/MonkeySharp.*"
     schedule:
       interval: "weekly"
       day: "monday"

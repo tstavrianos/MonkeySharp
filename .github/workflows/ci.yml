@@ -37,13 +37,13 @@ jobs:
             global.json
 
       - name: Restore
-        run: dotnet restore RogueLib.slnx
+        run: dotnet restore MonkeySharp.slnx
 
       - name: Build (Release)
-        run: dotnet build RogueLib.slnx --configuration Release --no-restore
+        run: dotnet build MonkeySharp.slnx --configuration Release --no-restore
 
       - name: Test solution (Release)
-        run: dotnet test RogueLib.slnx --configuration Release --no-build --logger "trx;LogFilePrefix=RogueLib" --results-directory ./TestResults
+        run: dotnet test MonkeySharp.slnx --configuration Release --no-build --logger "trx;LogFilePrefix=MonkeySharp" --results-directory ./TestResults
 
       - name: Upload test results
         if: always()
