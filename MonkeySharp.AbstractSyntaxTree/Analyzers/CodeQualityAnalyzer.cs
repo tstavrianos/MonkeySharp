@@ -53,7 +53,8 @@ public class CodeQualityAnalyzer
         switch (node)
         {
             case ProgramNode program:
-                foreach (var statement in program.Statements) AnalyzeNode(statement);
+                foreach (var statement in program.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case BlockStatement blockStatement:
@@ -123,7 +124,8 @@ public class CodeQualityAnalyzer
                 break;
 
             case ArrayLiteral arrayLiteral:
-                foreach (var element in arrayLiteral.Elements) AnalyzeNode(element);
+                foreach (var element in arrayLiteral.Elements)
+                    AnalyzeNode(element);
                 break;
 
             case HashLiteral hashLiteral:
@@ -148,7 +150,8 @@ public class CodeQualityAnalyzer
         var previousAfterReturn = _afterReturn;
         _afterReturn = false;
 
-        foreach (var statement in blockStatement.Statements) AnalyzeNode(statement);
+        foreach (var statement in blockStatement.Statements)
+            AnalyzeNode(statement);
 
         _afterReturn = previousAfterReturn || CurrentScope().HasReturned;
     }
@@ -172,7 +175,7 @@ public class CodeQualityAnalyzer
             //Name = varName,
             //IsWritten = true,
             IsRead = false,
-            IsParameter = false
+            IsParameter = false,
         };
     }
 
@@ -191,7 +194,8 @@ public class CodeQualityAnalyzer
             else
             {
                 AddWarning("If condition is always false; then branch is dead code");
-                if (ifExpression.Alternative != null) AnalyzeNode(ifExpression.Alternative);
+                if (ifExpression.Alternative != null)
+                    AnalyzeNode(ifExpression.Alternative);
             }
 
             return;
@@ -205,12 +209,15 @@ public class CodeQualityAnalyzer
 
         _afterReturn = false;
 
-        if (ifExpression.Alternative != null) AnalyzeNode(ifExpression.Alternative);
+        if (ifExpression.Alternative != null)
+            AnalyzeNode(ifExpression.Alternative);
 
         var alternativeReturns = _afterReturn;
 
         // Only set after return if both branches return
-        _afterReturn = beforeReturn || (consequenceReturns && alternativeReturns && ifExpression.Alternative != null);
+        _afterReturn =
+            beforeReturn
+            || (consequenceReturns && alternativeReturns && ifExpression.Alternative != null);
     }
 
     private void AnalyzeFunctionLiteral(FunctionLiteral functionLiteral)
@@ -226,7 +233,7 @@ public class CodeQualityAnalyzer
             CurrentScope().Variables[param.Value] = new VariableInfo
             {
                 IsRead = false,
-                IsParameter = true
+                IsParameter = true,
             };
 
         AnalyzeNode(functionLiteral.Body);
@@ -251,7 +258,8 @@ public class CodeQualityAnalyzer
     {
         AnalyzeNode(callExpression.Function);
 
-        foreach (var arg in callExpression.Arguments) AnalyzeNode(arg);
+        foreach (var arg in callExpression.Arguments)
+            AnalyzeNode(arg);
     }
 
     private void MarkVariableAsRead(string name)

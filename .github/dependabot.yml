@@ -1,0 +1,48 @@
+version: 2
+
+updates:
+  - package-ecosystem: "nuget"
+    directories:
+      - "/RogueLib.*"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "nuget"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    groups:
+      microsoft-packages:
+        patterns:
+          - "Microsoft.*"
+        update-types:
+          - "minor"
+          - "patch"
+      xunit-packages:
+        patterns:
+          - "xunit*"
+          - "coverlet*"
+          - "Microsoft.NET.Test.Sdk"
+        update-types:
+          - "minor"
+          - "patch"
+      non-breaking-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "UTC"
+    labels:
+      - "dependencies"
+      - "github-actions"

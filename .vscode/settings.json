@@ -1,0 +1,11 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/.*/": true
+    },
+	"chat.plugins.enabled": true,
+  	"chat.plugins.marketplaces": ["dotnet/skills"],
+    "editor.indentSize": "tabSize",
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "editor.insertSpaces": false
+}

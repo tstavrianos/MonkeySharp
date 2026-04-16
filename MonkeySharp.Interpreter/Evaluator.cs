@@ -9,9 +9,15 @@ using MonkeySharp.Interpreter.Objects;
 
 namespace MonkeySharp.Interpreter;
 
-public class Evaluator
+public static class Evaluator
 {
-    public Value Eval(Node node, SymbolTable symbolTable)
+    // PUBLIC API
+    public static Value Evaluate(ParsedObject parsedObject, SymbolTable? symbolTable = null)
+    {
+        return Eval(parsedObject.ProgramNode, symbolTable ?? new SymbolTable());
+    }
+
+    public static Value Eval(Node? node, SymbolTable symbolTable)
     {
         switch (node)
         {
@@ -26,15 +32,18 @@ public class Evaluator
             case PrefixExpression prefixExpression:
             {
                 var right = Eval(prefixExpression.Right, symbolTable);
-                if (right.IsError) return right;
+                if (right.IsError)
+                    return right;
                 return Value.PrefixOperation(prefixExpression.Operator, right);
             }
             case InfixExpression infixExpression:
             {
                 var left = Eval(infixExpression.Left, symbolTable);
-                if (left.IsError) return left;
+                if (left.IsError)
+                    return left;
                 var right = Eval(infixExpression.Right, symbolTable);
-                if (right.IsError) return right;
+                if (right.IsError)
+                    return right;
                 return Value.InfixOperation(left, infixExpression.Operator, right);
             }
             case BlockStatement blockStatement:
@@ -44,13 +53,15 @@ public class Evaluator
             case ReturnStatement returnStatement:
             {
                 var value = Eval(returnStatement.ReturnValue, symbolTable);
-                if (value.IsError) return value;
+                if (value.IsError)
+                    return value;
                 return Value.ReturnValue(value);
             }
             case LetStatement letStatement:
             {
                 var value = Eval(letStatement.Value, symbolTable);
-                if (value.IsError) return value;
+                if (value.IsError)
+                    return value;
                 symbolTable.Set(letStatement.Name.Value, value);
                 break;
             }
@@ -65,9 +76,11 @@ public class Evaluator
             case CallExpression callExpression:
             {
                 var function = Eval(callExpression.Function, symbolTable);
-                if (function.IsError) return function;
+                if (function.IsError)
+                    return function;
                 var args = EvalExpressions(callExpression.Arguments, symbolTable);
-                if (args.Length == 1 && args[0].IsError) return args[0];
+                if (args.Length == 1 && args[0].IsError)
+                    return args[0];
 
                 return ApplyFunction(function, args);
             }
@@ -76,15 +89,18 @@ public class Evaluator
             case ArrayLiteral arrayLiteral:
             {
                 var elements = EvalExpressions(arrayLiteral.Elements, symbolTable);
-                if (elements.Length == 1 && elements[0].IsError) return elements[0];
+                if (elements.Length == 1 && elements[0].IsError)
+                    return elements[0];
                 return Value.Array(elements);
             }
             case IndexExpression indexExpression:
             {
                 var left = Eval(indexExpression.Left, symbolTable);
-                if (left.IsError) return left;
+                if (left.IsError)
+                    return left;
                 var index = Eval(indexExpression.Index, symbolTable);
-                if (index.IsError) return index;
+                if (index.IsError)
+                    return index;
                 return EvalIndexExpression(left, index);
             }
             case HashLiteral hashLiteral:
@@ -94,17 +110,19 @@ public class Evaluator
         return Value.NullValue;
     }
 
-    private Value EvalHashLiteral(HashLiteral hashLiteral, SymbolTable symbolTable)
+    private static Value EvalHashLiteral(HashLiteral hashLiteral, SymbolTable symbolTable)
     {
         var pairs = new Dictionary<HashKey, (Value Key, Value Value)>();
         foreach (var (key, value) in hashLiteral.Pairs)
         {
             var k = Eval(key, symbolTable);
-            if (k.IsError) return k;
+            if (k.IsError)
+                return k;
             if (!k.IsHashable)
                 return Value.Error($"unusable as hash key: {k.Type}");
             var v = Eval(value, symbolTable);
-            if (v.IsError) return v;
+            if (v.IsError)
+                return v;
             var hashed = k.GetHashKey();
             pairs.Add(hashed, (k, v));
         }
@@ -130,7 +148,7 @@ public class Evaluator
             return Value.Error($"unusable as hash key: {index.Type}");
 
         var hashed = index.GetHashKey();
-        var pairs = hashValue.HashPairs;
+        var pairs = hashValue.HashPairs!;
 
         if (!pairs.TryGetValue(hashed, out var pair))
             return Value.NullValue;
@@ -141,33 +159,39 @@ public class Evaluator
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Value EvalArrayIndexExpression(Value arrayValue, Value indexValue)
     {
-        var elements = arrayValue.ArrayElements;
+        var elements = arrayValue.ArrayElements!;
         var idx = indexValue.IntValue;
         var max = elements.Count - 1;
 
         if (idx < 0 || idx > max)
             return Value.NullValue;
 
-        return elements[(int) idx];
+        return elements[(int)idx];
     }
 
-    private Value ApplyFunction(Value function, IReadOnlyList<Value> args)
+    private static Value ApplyFunction(Value function, IReadOnlyList<Value> args)
     {
         if (function.IsFunction)
         {
-            var functionData = function.FunctionData;
+            var functionData = function.FunctionData!;
             var currentEnv = ExtendFunctionEnv(functionData, args);
             var currentBody = functionData.Body;
 
             // Tail call optimization loop
             while (true)
             {
-                var evaluated = EvalBlockStatementWithTailCall(currentBody, currentEnv, function, out var tailCall);
+                var evaluated = EvalBlockStatementWithTailCall(
+                    currentBody,
+                    currentEnv,
+                    function,
+                    out var tailCall
+                );
 
                 if (!tailCall.HasValue)
                 {
                     // No tail call detected, return the result
-                    if (evaluated.IsReturnValue) return evaluated.InnerReturnValue;
+                    if (evaluated.IsReturnValue)
+                        return evaluated.InnerReturnValue;
                     return evaluated;
                 }
 
@@ -180,35 +204,42 @@ public class Evaluator
 
                 // Update for next iteration
                 function = tailFunction;
-                functionData = tailFunction.FunctionData;
+                functionData = tailFunction.FunctionData!;
                 currentEnv = ExtendFunctionEnv(functionData, tailArgs);
                 currentBody = functionData.Body;
             }
         }
 
-        if (function.IsBuiltin) return function.BuiltinFunction(args);
+        if (function.IsBuiltin)
+            return function.BuiltinFunction!(args);
 
         return Value.Error($"not a function: {function.Type}");
     }
 
-    private Value ApplyFunctionDirect(Value function, IReadOnlyList<Value> args)
+    private static Value ApplyFunctionDirect(Value function, IReadOnlyList<Value> args)
     {
         if (function.IsFunction)
         {
-            var functionData = function.FunctionData;
+            var functionData = function.FunctionData!;
             var extendedEnv = ExtendFunctionEnv(functionData, args);
             var evaluated = Eval(functionData.Body, extendedEnv);
-            if (evaluated.IsReturnValue) return evaluated.InnerReturnValue;
+            if (evaluated.IsReturnValue)
+                return evaluated.InnerReturnValue;
             return evaluated;
         }
 
-        if (function.IsBuiltin) return function.BuiltinFunction(args);
+        if (function.IsBuiltin)
+            return function.BuiltinFunction!(args);
 
         return Value.Error($"not a function: {function.Type}");
     }
 
-    private Value EvalBlockStatementWithTailCall(BlockStatement blockStatement, SymbolTable symbolTable,
-        Value currentFunction, out (Value Function, Value[] Args)? tailCall)
+    private static Value EvalBlockStatementWithTailCall(
+        BlockStatement blockStatement,
+        SymbolTable symbolTable,
+        Value currentFunction,
+        out (Value Function, Value[] Args)? tailCall
+    )
     {
         tailCall = null;
         var result = Value.NullValue;
@@ -226,13 +257,18 @@ public class Evaluator
                 if (returnStatement.ReturnValue is CallExpression callExpression)
                 {
                     var function = Eval(callExpression.Function, symbolTable);
-                    if (function.IsError) return Value.ReturnValue(function);
+                    if (function.IsError)
+                        return Value.ReturnValue(function);
 
                     var args = EvalExpressions(callExpression.Arguments, symbolTable);
-                    if (args.Length == 1 && args[0].IsError) return Value.ReturnValue(args[0]);
+                    if (args.Length == 1 && args[0].IsError)
+                        return Value.ReturnValue(args[0]);
 
                     // Check if this is a recursive call to the same function
-                    if (function.IsFunction && ReferenceEquals(function.FunctionData, currentFunction.FunctionData))
+                    if (
+                        function.IsFunction
+                        && ReferenceEquals(function.FunctionData, currentFunction.FunctionData)
+                    )
                     {
                         // Tail call detected!
                         tailCall = (function, args);
@@ -251,14 +287,17 @@ public class Evaluator
             }
 
             result = Eval(statement, symbolTable);
-            if (result.IsReturnValue || result.IsError) return result;
+            if (result.IsReturnValue || result.IsError)
+                return result;
         }
 
         return result;
     }
 
-    private static SymbolTable ExtendFunctionEnv(FunctionData functionData,
-        IReadOnlyList<Value> args)
+    private static SymbolTable ExtendFunctionEnv(
+        FunctionData functionData,
+        IReadOnlyList<Value> args
+    )
     {
         var env = new SymbolTable(functionData.SymbolTable, args.Count);
         for (var i = 0; i < functionData.Parameters.Count; i++)
@@ -266,8 +305,10 @@ public class Evaluator
         return env;
     }
 
-    private Value[] EvalExpressions(IReadOnlyList<Expression> callExpressionArguments,
-        SymbolTable symbolTable)
+    private static Value[] EvalExpressions(
+        IReadOnlyList<Expression> callExpressionArguments,
+        SymbolTable symbolTable
+    )
     {
         var result = ArrayPool<Value>.Shared.Rent(callExpressionArguments.Count);
         var actualCount = 0;
@@ -292,43 +333,50 @@ public class Evaluator
     private static Value EvalIdentifier(Identifier identifier, SymbolTable symbolTable)
     {
         var (val, ok) = symbolTable.Get(identifier.Value);
-        if (ok) return val;
+        if (ok)
+            return val;
         if (!Builtins.TryGet(identifier.Value, out var builtinValue))
             return Value.Error($"identifier not found: {identifier.Value}");
         return builtinValue;
     }
 
-    private Value EvalBlockStatement(BlockStatement blockStatement, SymbolTable symbolTable)
+    private static Value EvalBlockStatement(BlockStatement blockStatement, SymbolTable symbolTable)
     {
         var result = Value.NullValue;
         foreach (var statement in blockStatement.Statements)
         {
             result = Eval(statement, symbolTable);
-            if (result.IsReturnValue || result.IsError) return result;
+            if (result.IsReturnValue || result.IsError)
+                return result;
         }
 
         return result;
     }
 
-    private Value EvalProgram(ProgramNode programNode, SymbolTable symbolTable)
+    private static Value EvalProgram(ProgramNode programNode, SymbolTable symbolTable)
     {
         var result = Value.NullValue;
         foreach (var statement in programNode.Statements)
         {
             result = Eval(statement, symbolTable);
-            if (result.IsReturnValue) return result.InnerReturnValue;
-            if (result.IsError) return result;
+            if (result.IsReturnValue)
+                return result.InnerReturnValue;
+            if (result.IsError)
+                return result;
         }
 
         return result;
     }
 
-    private Value EvalIfExpression(IfExpression ifExpression, SymbolTable symbolTable)
+    private static Value EvalIfExpression(IfExpression ifExpression, SymbolTable symbolTable)
     {
         var condition = Eval(ifExpression.Condition, symbolTable);
-        if (condition.IsError) return condition;
-        if (condition.IsTruthy()) return Eval(ifExpression.Consequence, symbolTable);
-        if (ifExpression.Alternative != null) return Eval(ifExpression.Alternative, symbolTable);
+        if (condition.IsError)
+            return condition;
+        if (condition.IsTruthy())
+            return Eval(ifExpression.Consequence, symbolTable);
+        if (ifExpression.Alternative != null)
+            return Eval(ifExpression.Alternative, symbolTable);
         return Value.NullValue;
     }
 }

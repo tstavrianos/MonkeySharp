@@ -19,8 +19,10 @@ public readonly struct HashKey : IEquatable<HashKey>
         return Type == other.Type && Value == other.Value;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is HashKey other && Equals(other);
     }
 

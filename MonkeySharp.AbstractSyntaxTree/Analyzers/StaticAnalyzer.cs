@@ -12,8 +12,10 @@ public class StaticAnalyzer
     private readonly CodeQualityAnalyzer _qualityAnalyzer = new();
     private readonly DataFlowAnalyzer _dataFlowAnalyzer = new();
 
-    public IReadOnlyList<string> AllErrors { get; private set; }
-    public IReadOnlyList<string> AllWarnings { get; private set; }
+    private readonly List<string> _errors = [];
+    private readonly List<string> _warnings = [];
+    public IReadOnlyList<string> AllErrors => _errors;
+    public IReadOnlyList<string> AllWarnings => _warnings;
 
     /// <summary>
     /// Performs comprehensive static analysis on the given AST node.
@@ -24,19 +26,21 @@ public class StaticAnalyzer
     /// <param name="runQuality">Whether to run code quality analysis</param>
     /// <param name="runDataFlow">Whether to run data flow analysis</param>
     /// <returns>True if no errors were found (warnings are acceptable)</returns>
-    public bool Analyze(Node node,
-        IEnumerable<(string, int)> builtinNamesAndArguments = null,
+    public bool Analyze(
+        Node node,
+        IEnumerable<(string, int)>? builtinNamesAndArguments = null,
         bool runSecurity = true,
         bool runQuality = true,
-        bool runDataFlow = true)
+        bool runDataFlow = true
+    )
     {
-        var errors = new List<string>();
-        var warnings = new List<string>();
+        _errors.Clear();
+        _warnings.Clear();
 
         // 1. Always run semantic analysis first (it's foundational)
         var semanticSuccess = _semanticAnalyzer.Analyze(node, builtinNamesAndArguments);
-        errors.AddRange(_semanticAnalyzer.Errors);
-        warnings.AddRange(_semanticAnalyzer.Warnings);
+        _errors.AddRange(_semanticAnalyzer.Errors);
+        _warnings.AddRange(_semanticAnalyzer.Warnings);
 
         // Only continue with other analyses if semantic analysis passed
         if (semanticSuccess)
@@ -45,29 +49,26 @@ public class StaticAnalyzer
             if (runSecurity)
             {
                 _securityAnalyzer.Analyze(node);
-                warnings.AddRange(_securityAnalyzer.Warnings);
+                _warnings.AddRange(_securityAnalyzer.Warnings);
             }
 
             // 3. Code Quality Analysis
             if (runQuality)
             {
                 _qualityAnalyzer.Analyze(node);
-                warnings.AddRange(_qualityAnalyzer.Warnings);
+                _warnings.AddRange(_qualityAnalyzer.Warnings);
             }
 
             // 4. Data Flow Analysis
             if (runDataFlow)
             {
                 _dataFlowAnalyzer.Analyze(node);
-                errors.AddRange(_dataFlowAnalyzer.Errors);
-                warnings.AddRange(_dataFlowAnalyzer.Warnings);
+                _errors.AddRange(_dataFlowAnalyzer.Errors);
+                _warnings.AddRange(_dataFlowAnalyzer.Warnings);
             }
         }
 
-        AllErrors = errors;
-        AllWarnings = warnings;
-
-        return errors.Count == 0;
+        return _errors.Count == 0;
     }
 
     /// <summary>
@@ -80,18 +81,21 @@ public class StaticAnalyzer
         if (AllErrors.Count > 0)
         {
             lines.Add($"=== Errors ({AllErrors.Count}) ===");
-            foreach (var error in AllErrors) lines.Add($"  ❌ {error}");
+            foreach (var error in AllErrors)
+                lines.Add($"  ❌ {error}");
             lines.Add("");
         }
 
         if (AllWarnings.Count > 0)
         {
             lines.Add($"=== Warnings ({AllWarnings.Count}) ===");
-            foreach (var warning in AllWarnings) lines.Add($"  ⚠️  {warning}");
+            foreach (var warning in AllWarnings)
+                lines.Add($"  ⚠️  {warning}");
             lines.Add("");
         }
 
-        if (AllErrors.Count == 0 && AllWarnings.Count == 0) lines.Add("✅ No issues found");
+        if (AllErrors.Count == 0 && AllWarnings.Count == 0)
+            lines.Add("✅ No issues found");
 
         return string.Join("\n", lines);
     }

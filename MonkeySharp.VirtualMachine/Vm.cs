@@ -30,7 +30,8 @@ public class Vm
         _sp = 0;
     }
 
-    public Vm(ByteCode bytecode, Value[] s) : this(bytecode)
+    public Vm(ByteCode bytecode, Value[] s)
+        : this(bytecode)
     {
         Array.Copy(s, _globals, s.Length);
     }
@@ -57,7 +58,7 @@ public class Vm
 
     public Value LastPoppedStackElement { get; private set; }
 
-    public string Run()
+    public string? Run()
     {
         var currentFrame = CurrentFrame();
         var ins = currentFrame.Instructions().AsSpan();
@@ -65,7 +66,7 @@ public class Vm
         {
             currentFrame.Ip++;
             var ip = currentFrame.Ip;
-            var op = (OpCode) ins[ip];
+            var op = (OpCode)ins[ip];
             switch (op)
             {
                 case OpCode.Constant:
@@ -74,7 +75,8 @@ public class Vm
                     currentFrame.Ip += 2;
 
                     var err = Push(_constants[constIndex]);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Add:
@@ -86,7 +88,8 @@ public class Vm
                 case OpCode.GreaterThan:
                 {
                     var err = ExecuteBinaryOperation(op);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Pop:
@@ -95,20 +98,23 @@ public class Vm
                 case OpCode.True:
                 {
                     var err = Push(Value.True);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.False:
                 {
                     var err = Push(Value.False);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Bang:
                 case OpCode.Minus:
                 {
                     var err = ExecutePrefixOperation(op);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Jump:
@@ -122,13 +128,15 @@ public class Vm
                     var pos = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
                     currentFrame.Ip += 2;
                     var condition = Pop();
-                    if (!condition.IsTruthy()) currentFrame.Ip = pos - 1;
+                    if (!condition.IsTruthy())
+                        currentFrame.Ip = pos - 1;
                     break;
                 }
                 case OpCode.Null:
                 {
                     var err = Push(Value.NullValue);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.SetGlobal:
@@ -143,7 +151,8 @@ public class Vm
                     var globalIndex = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
                     currentFrame.Ip += 2;
                     var err = Push(_globals[globalIndex]);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Array:
@@ -153,7 +162,8 @@ public class Vm
                     var array = BuildArray(_sp - numElements, _sp);
                     _sp = _sp - numElements;
                     var err = Push(array);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Hash:
@@ -161,10 +171,12 @@ public class Vm
                     var numElements = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
                     currentFrame.Ip += 2;
                     var (hash, err) = BuildHash(_sp - numElements, _sp);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     _sp = _sp - numElements;
                     err = Push(hash);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Index:
@@ -172,7 +184,8 @@ public class Vm
                     var index = Pop();
                     var left = Pop();
                     var err = ExecuteIndexExpression(left, index);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Call:
@@ -180,7 +193,8 @@ public class Vm
                     var numArgs = ins[ip + 1];
                     currentFrame.Ip += 1;
                     var err = ExecuteCall(numArgs);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     currentFrame = CurrentFrame();
                     ins = currentFrame.Instructions().AsSpan();
                     break;
@@ -193,7 +207,8 @@ public class Vm
                     ins = currentFrame.Instructions().AsSpan();
                     _sp = frame.BasePointer - 1;
                     var err = Push(returnValue);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Return:
@@ -203,7 +218,8 @@ public class Vm
                     ins = currentFrame.Instructions().AsSpan();
                     _sp = frame.BasePointer - 1;
                     var err = Push(Value.NullValue);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.SetLocal:
@@ -220,7 +236,8 @@ public class Vm
                     currentFrame.Ip += 1;
                     var frame = currentFrame;
                     var err = Push(_stack[frame.BasePointer + localIndex]);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.GetBuiltin:
@@ -229,7 +246,8 @@ public class Vm
                     currentFrame.Ip += 1;
                     var definition = Builtins.ByIndex(builtinIndex);
                     var err = Push(definition);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.Closure:
@@ -238,7 +256,8 @@ public class Vm
                     var numFree = ins[ip + 3];
                     currentFrame.Ip += 3;
                     var err = PushClosure(constantIndex, numFree);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.GetFree:
@@ -246,15 +265,17 @@ public class Vm
                     var freeIndex = ins[ip + 1];
                     currentFrame.Ip += 1;
                     var currentClosure = currentFrame.Closure;
-                    var err = Push(currentClosure.ClosureData.Free[freeIndex]);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    var err = Push(currentClosure.ClosureData!.Free[freeIndex]);
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.CurrentClosure:
                 {
                     var currentClosure = currentFrame.Closure;
                     var err = Push(currentClosure);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     break;
                 }
                 case OpCode.TailCall:
@@ -262,7 +283,8 @@ public class Vm
                     var numArgs = ins[ip + 1];
                     currentFrame.Ip += 1;
                     var err = ExecuteTailCall(numArgs);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     currentFrame = CurrentFrame();
                     ins = currentFrame.Instructions().AsSpan();
                     break;
@@ -273,7 +295,7 @@ public class Vm
         return null;
     }
 
-    private string ExecuteTailCall(int numArgs)
+    private string? ExecuteTailCall(int numArgs)
     {
         var callee = _stack[_sp - 1 - numArgs];
 
@@ -286,10 +308,10 @@ public class Vm
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string TailCallClosure(Value closure, int numArgs)
+    private string? TailCallClosure(Value closure, int numArgs)
     {
-        var closureData = closure.ClosureData;
-        var functionData = closureData.Function.CompiledFunctionData;
+        var closureData = closure.ClosureData!;
+        var functionData = closureData.Function.CompiledFunctionData!;
 
         if (functionData.NumParameters != numArgs)
             return $"wrong number of arguments. want={functionData.NumParameters}, got={numArgs}";
@@ -302,7 +324,8 @@ public class Vm
         // Arguments are at: _sp - numArgs to _sp - 1
         // Target position: oldBasePointer to oldBasePointer + numArgs - 1
         var argStartPos = _sp - numArgs;
-        for (var i = 0; i < numArgs; i++) _stack[oldBasePointer + i] = _stack[argStartPos + i];
+        for (var i = 0; i < numArgs; i++)
+            _stack[oldBasePointer + i] = _stack[argStartPos + i];
 
         // Update the current frame instead of pushing a new one
         currentFrame.Closure = closure;
@@ -314,18 +337,20 @@ public class Vm
         return null;
     }
 
-    private string PushClosure(ushort constantIndex, byte numFree)
+    private string? PushClosure(ushort constantIndex, byte numFree)
     {
         var constant = _constants[constantIndex];
-        if (!constant.IsCompiledFunction) return $"not a function: {constant.Type}";
+        if (!constant.IsCompiledFunction)
+            return $"not a function: {constant.Type}";
         var free = new Value[numFree];
-        for (var i = 0; i < numFree; i++) free[i] = _stack[_sp - (numFree - i)];
+        for (var i = 0; i < numFree; i++)
+            free[i] = _stack[_sp - (numFree - i)];
         _sp = _sp - numFree;
         var closure = Value.Closure(constant, free);
         return Push(closure);
     }
 
-    private string ExecuteCall(int numArgs)
+    private string? ExecuteCall(int numArgs)
     {
         var callee = _stack[_sp - 1 - numArgs];
         if (callee.IsClosure)
@@ -336,10 +361,10 @@ public class Vm
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string CallClosure(Value closure, int numArgs)
+    private string? CallClosure(Value closure, int numArgs)
     {
-        var closureData = closure.ClosureData;
-        var functionData = closureData.Function.CompiledFunctionData;
+        var closureData = closure.ClosureData!;
+        var functionData = closureData.Function.CompiledFunctionData!;
         if (functionData.NumParameters != numArgs)
             return $"wrong number of arguments. want={functionData.NumParameters}, got={numArgs}";
         var frame = new Frame(closure, _sp - numArgs);
@@ -348,18 +373,19 @@ public class Vm
         return null;
     }
 
-    private string CallBuiltin(Value builtinValue, int numArgs)
+    private string? CallBuiltin(Value builtinValue, int numArgs)
     {
         var args = _stack[(_sp - numArgs).._sp];
-        var result = builtinValue.BuiltinFunction(args);
+        var result = builtinValue.BuiltinFunction!(args);
         _sp = _sp - numArgs - 1;
-        if (result.IsError) return result.ErrorMessage;
+        if (result.IsError)
+            return result.ErrorMessage;
         Push(result.IsNull ? Value.NullValue : result);
         return null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteIndexExpression(Value left, Value index)
+    private string? ExecuteIndexExpression(Value left, Value index)
     {
         if (left.IsArray && index.IsInteger)
             return ExecuteArrayIndex(left, index);
@@ -369,26 +395,28 @@ public class Vm
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteHashIndex(Value hashLeft, Value index)
+    private string? ExecuteHashIndex(Value hashLeft, Value index)
     {
-        if (!index.IsHashable) return $"unusable as hash key: {index.Type}";
+        if (!index.IsHashable)
+            return $"unusable as hash key: {index.Type}";
         var hashKey = index.GetHashKey();
-        if (!hashLeft.HashPairs.TryGetValue(hashKey, out var pair))
+        if (!hashLeft.HashPairs!.TryGetValue(hashKey, out var pair))
             return Push(Value.NullValue);
         return Push(pair.Value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteArrayIndex(Value arrayLeft, Value integerIndex)
+    private string? ExecuteArrayIndex(Value arrayLeft, Value integerIndex)
     {
-        var i = (int) integerIndex.IntValue;
-        var elements = arrayLeft.ArrayElements;
+        var i = (int)integerIndex.IntValue;
+        var elements = arrayLeft.ArrayElements!;
         var max = elements.Count - 1;
-        if (i < 0 || i > max) return Push(Value.NullValue);
+        if (i < 0 || i > max)
+            return Push(Value.NullValue);
         return Push(elements[i]);
     }
 
-    private (Value hash, string err) BuildHash(int startIndex, int endIndex)
+    private (Value hash, string? err) BuildHash(int startIndex, int endIndex)
     {
         var hashedPairs = new Dictionary<HashKey, (Value Key, Value Value)>(endIndex - startIndex);
 
@@ -397,7 +425,8 @@ public class Vm
             var key = _stack[i];
             var value = _stack[i + 1];
 
-            if (!key.IsHashable) return (default, $"unusable as hash key: {key.Type}");
+            if (!key.IsHashable)
+                return (default, $"unusable as hash key: {key.Type}");
 
             hashedPairs.Add(key.GetHashKey(), (key, value));
         }
@@ -411,28 +440,31 @@ public class Vm
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecutePrefixOperation(OpCode op)
+    private string? ExecutePrefixOperation(OpCode op)
     {
         var operand = Pop();
         var result = Value.PrefixOperation(op, operand);
-        if (result.IsError) return result.ErrorMessage;
+        if (result.IsError)
+            return result.ErrorMessage!;
         return Push(result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string ExecuteBinaryOperation(OpCode op)
+    private string? ExecuteBinaryOperation(OpCode op)
     {
         var right = Pop();
         var left = Pop();
         var result = Value.InfixOperation(left, op, right);
-        if (result.IsError) return result.ErrorMessage;
+        if (result.IsError)
+            return result.ErrorMessage!;
         return Push(result);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private string Push(Value obj)
+    private string? Push(Value obj)
     {
-        if (_sp >= StackSize) return "stack overflow";
+        if (_sp >= StackSize)
+            return "stack overflow";
 
         _stack[_sp] = obj;
         _sp++;

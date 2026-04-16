@@ -15,12 +15,13 @@ namespace MonkeySharp.Benchmarks;
 [MemoryDiagnoser]
 [CPUUsageDiagnoser]
 #if CHECK_CACHE_MISSES
-    [HardwareCounters(BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses)]
+[HardwareCounters(BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses)]
 #endif
 [ReturnValueValidator(true)]
 public class Benchmarks
 {
-    private const string Input = @"
+    private const string Input =
+        @"
 let fibonacci = fn(x) {
     if (x == 0) {
         0
@@ -88,9 +89,9 @@ fibonacci(20);";
     [BenchmarkCategory(Categories.Evaluator)]
     public long BenchmarkEvaluator()
     {
-        var evaluator = new Evaluator();
-        var result = evaluator.Eval(_program, new SymbolTable());
-        if (!result.IsInteger) return long.MinValue;
+        var result = Evaluator.Eval(_program, new SymbolTable());
+        if (!result.IsInteger)
+            return long.MinValue;
         return result.IntValue;
     }
 
@@ -101,7 +102,8 @@ fibonacci(20);";
         var vm = new Vm(_byteCode);
         vm.Run();
         var result = vm.LastPoppedStackElement;
-        if (!result.IsInteger) return long.MinValue;
+        if (!result.IsInteger)
+            return long.MinValue;
         return result.IntValue;
     }
 
@@ -110,7 +112,8 @@ fibonacci(20);";
     public long BenchmarkIL()
     {
         var result = _func();
-        if (result is not MonkeyInteger integer) return long.MinValue;
+        if (result is not MonkeyInteger integer)
+            return long.MinValue;
         return integer.Value;
     }
 

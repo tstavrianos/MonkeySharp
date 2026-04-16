@@ -13,8 +13,11 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token associated with this function literal (typically the 'fn' keyword).</param>
 /// <param name="parameters">The list of parameter identifiers for the function.</param>
 /// <param name="body">The block statement containing the function's body.</param>
-public sealed class FunctionLiteral(Token token, IReadOnlyList<Identifier> parameters, BlockStatement body)
-    : Expression(token)
+public sealed class FunctionLiteral(
+    Token token,
+    IReadOnlyList<Identifier> parameters,
+    BlockStatement body
+) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.
@@ -26,7 +29,7 @@ public sealed class FunctionLiteral(Token token, IReadOnlyList<Identifier> param
     /// This is primarily used for named function expressions or debugging purposes.
     /// This property is mutable to support AST transformations and optimizations.
     /// </summary>
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     /// <summary>
     /// Gets the read-only list of parameter identifiers for this function.

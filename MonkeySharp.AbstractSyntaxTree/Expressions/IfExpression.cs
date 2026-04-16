@@ -15,8 +15,8 @@ public sealed class IfExpression(
     Token token,
     Expression condition,
     BlockStatement consequence,
-    BlockStatement alternative)
-    : Expression(token)
+    BlockStatement? alternative
+) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.
@@ -37,7 +37,7 @@ public sealed class IfExpression(
     /// Gets or sets the block statement to execute when the condition evaluates to false.
     /// Can be null if there is no else clause.
     /// </summary>
-    public BlockStatement Alternative { get; set; } = alternative;
+    public BlockStatement? Alternative { get; set; } = alternative;
 
     /// <summary>
     /// Returns a string representation of the if-else expression.

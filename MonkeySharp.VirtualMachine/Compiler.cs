@@ -18,7 +18,8 @@ public class Compiler
     {
         _constants = [];
         _symbolTable = new SymbolTable();
-        foreach (var (name, i) in Builtins.Keys()) _symbolTable.DefineBuiltin(i, name);
+        foreach (var (name, i) in Builtins.Keys())
+            _symbolTable.DefineBuiltin(i, name);
         _scopes.Push(new CompilationScope());
     }
 
@@ -42,7 +43,7 @@ public class Compiler
 
     private List<byte> LeaveScope()
     {
-        _symbolTable = _symbolTable.Outer;
+        _symbolTable = _symbolTable.Outer!;
         return _scopes.Pop().Instructions;
     }
 
@@ -51,12 +52,12 @@ public class Compiler
         return new ByteCode(CurrentInstructions().ToArray(), _constants.ToArray());
     }
 
-    public string Compile(Node node)
+    public string? Compile(Node node)
     {
         return CompileNode(node, false);
     }
 
-    private string CompileNode(Node node, bool isTailPosition)
+    private string? CompileNode(Node? node, bool isTailPosition)
     {
         switch (node)
         {
@@ -65,7 +66,8 @@ public class Compiler
                 foreach (var s in program.Statements)
                 {
                     var err = CompileNode(s, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                 }
 
                 break;
@@ -73,27 +75,32 @@ public class Compiler
             case ExpressionStatement expressionStatement:
             {
                 var err = CompileNode(expressionStatement.Expression, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 Emit(OpCode.Pop);
                 break;
             }
             case InfixExpression infixExpression:
             {
-                string err;
+                string? err;
                 if (infixExpression.Operator == "<")
                 {
                     err = CompileNode(infixExpression.Right, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     err = CompileNode(infixExpression.Left, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     Emit(OpCode.GreaterThan);
                     break;
                 }
 
                 err = CompileNode(infixExpression.Left, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 err = CompileNode(infixExpression.Right, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 switch (infixExpression.Operator)
                 {
                     case "+":
@@ -137,7 +144,8 @@ public class Compiler
             case PrefixExpression prefixExpression:
             {
                 var err = CompileNode(prefixExpression.Right, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 switch (prefixExpression.Operator)
                 {
                     case "-":
@@ -155,19 +163,21 @@ public class Compiler
             case IfExpression ifExpression:
             {
                 var err = CompileNode(ifExpression.Condition, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
 
                 var jumpNotTruthyPos = Emit(OpCode.JumpNotTruthy, 9999);
 
                 err = CompileNode(ifExpression.Consequence, isTailPosition);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
 
-                if (LastInstructionIs(OpCode.Pop)) RemoveLastPop();
+                if (LastInstructionIs(OpCode.Pop))
+                    RemoveLastPop();
 
                 var jumpPos = Emit(OpCode.Jump, 9999);
                 var afterConsequencePos = CurrentInstructions().Count;
                 ChangeOperand(jumpNotTruthyPos, afterConsequencePos);
-
 
                 if (ifExpression.Alternative == null)
                 {
@@ -176,9 +186,11 @@ public class Compiler
                 else
                 {
                     err = CompileNode(ifExpression.Alternative, isTailPosition);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
 
-                    if (LastInstructionIs(OpCode.Pop)) RemoveLastPop();
+                    if (LastInstructionIs(OpCode.Pop))
+                        RemoveLastPop();
                 }
 
                 var afterAlternativePos = CurrentInstructions().Count;
@@ -193,7 +205,8 @@ public class Compiler
                     var statement = blockStatement.Statements[i];
                     var isLastStatement = i == blockStatement.Statements.Count - 1;
                     var err = CompileNode(statement, isTailPosition && isLastStatement);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                 }
 
                 break;
@@ -202,8 +215,12 @@ public class Compiler
             {
                 var symbol = _symbolTable.Define(letStatement.Name.Value);
                 var err = CompileNode(letStatement.Value, false);
-                if (!string.IsNullOrEmpty(err)) return err;
-                Emit(symbol.Scope == SymbolScope.Global ? OpCode.SetGlobal : OpCode.SetLocal, symbol.Index);
+                if (!string.IsNullOrEmpty(err))
+                    return err;
+                Emit(
+                    symbol.Scope == SymbolScope.Global ? OpCode.SetGlobal : OpCode.SetLocal,
+                    symbol.Index
+                );
                 break;
             }
             case Identifier identifier:
@@ -225,7 +242,8 @@ public class Compiler
                 foreach (var element in arrayLiteral.Elements)
                 {
                     var err = CompileNode(element, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     elements.Add(default);
                 }
 
@@ -237,11 +255,13 @@ public class Compiler
                 foreach (var key in hashLiteral.Pairs.Keys.OrderBy(k => k.ToString()))
                 {
                     var err = CompileNode(key, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
 
                     var value = hashLiteral.Pairs[key];
                     err = CompileNode(value, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                 }
 
                 Emit(OpCode.Hash, hashLiteral.Pairs.Count * 2);
@@ -250,9 +270,11 @@ public class Compiler
             case IndexExpression indexExpression:
             {
                 var err = CompileNode(indexExpression.Left, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 err = CompileNode(indexExpression.Index, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 Emit(OpCode.Index);
                 break;
             }
@@ -261,11 +283,13 @@ public class Compiler
                 EnterScope();
                 if (!string.IsNullOrEmpty(functionLiteral.Name))
                     _symbolTable.DefineFunctionName(functionLiteral.Name);
-                foreach (var parameter in functionLiteral.Parameters) _symbolTable.Define(parameter.Value);
+                foreach (var parameter in functionLiteral.Parameters)
+                    _symbolTable.Define(parameter.Value);
 
                 // Function body is always in tail position for returns
                 var err = CompileNode(functionLiteral.Body, true);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
 
                 if (LastInstructionIs(OpCode.Pop))
                     ReplaceLastPopWithReturn();
@@ -276,10 +300,14 @@ public class Compiler
                 var numLocals = _symbolTable.NumDefinitions;
                 var instructions = LeaveScope();
 
-                foreach (var symbol in freeSymbols) LoadSymbol(symbol);
+                foreach (var symbol in freeSymbols)
+                    LoadSymbol(symbol);
 
-                var compiledFn =
-                    Value.CompiledFunction(instructions.ToArray(), numLocals, functionLiteral.Parameters.Count);
+                var compiledFn = Value.CompiledFunction(
+                    instructions.ToArray(),
+                    numLocals,
+                    functionLiteral.Parameters.Count
+                );
                 var fnIndex = AddConstant(compiledFn);
                 Emit(OpCode.Closure, fnIndex, freeSymbols.Count);
                 break;
@@ -291,12 +319,14 @@ public class Compiler
                 {
                     // Compile function and arguments
                     var err = CompileNode(tailCallExpr.Function, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
 
                     foreach (var argument in tailCallExpr.Arguments)
                     {
                         err = CompileNode(argument, false);
-                        if (!string.IsNullOrEmpty(err)) return err;
+                        if (!string.IsNullOrEmpty(err))
+                            return err;
                     }
 
                     // Emit tail call instead of regular call
@@ -306,7 +336,8 @@ public class Compiler
                 {
                     // Regular return
                     var err = CompileNode(returnStatement.ReturnValue, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                     Emit(OpCode.ReturnValue);
                 }
 
@@ -315,11 +346,13 @@ public class Compiler
             case CallExpression callExpression:
             {
                 var err = CompileNode(callExpression.Function, false);
-                if (!string.IsNullOrEmpty(err)) return err;
+                if (!string.IsNullOrEmpty(err))
+                    return err;
                 foreach (var argument in callExpression.Arguments)
                 {
                     err = CompileNode(argument, false);
-                    if (!string.IsNullOrEmpty(err)) return err;
+                    if (!string.IsNullOrEmpty(err))
+                        return err;
                 }
 
                 Emit(OpCode.Call, callExpression.Arguments.Count);
@@ -361,14 +394,18 @@ public class Compiler
 
     private void RemoveLastPop()
     {
-        CurrentInstructions().RemoveRange(_scopes.Peek().LastInstruction.Position,
-            CurrentInstructions().Count - _scopes.Peek().LastInstruction.Position);
+        CurrentInstructions()
+            .RemoveRange(
+                _scopes.Peek().LastInstruction.Position,
+                CurrentInstructions().Count - _scopes.Peek().LastInstruction.Position
+            );
         _scopes.Peek().LastInstruction = _scopes.Peek().PreviousInstruction;
     }
 
     private bool LastInstructionIs(OpCode op)
     {
-        if (CurrentInstructions().Count == 0) return false;
+        if (CurrentInstructions().Count == 0)
+            return false;
         return _scopes.Peek().LastInstruction.OpCode == op;
     }
 
@@ -380,7 +417,7 @@ public class Compiler
 
     private void ChangeOperand(int opPos, int operand)
     {
-        var op = (OpCode) CurrentInstructions()[opPos];
+        var op = (OpCode)CurrentInstructions()[opPos];
         var newInstruction = Code.Make(op, operand);
         ReplaceInstruction(opPos, newInstruction);
     }

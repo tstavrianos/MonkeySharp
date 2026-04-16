@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
@@ -7,7 +8,9 @@ using MonkeySharp.AbstractSyntaxTree.Visitors;
 
 namespace MonkeySharp.AbstractSyntaxTree;
 
-public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisitor<(Statement, bool)>
+public class Optimizer
+    : IExpressionVisitor<(Expression?, bool)>,
+        IStatementVisitor<(Statement?, bool)>
 {
     private const int MaxOptimizationPasses = 100;
 
@@ -51,7 +54,7 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         return _scopes.Last();
     }
 
-    private Expression TryResolveIdentifier(string name)
+    private Expression? TryResolveIdentifier(string name)
     {
         for (var i = _scopes.Count - 1; i >= 0; i--)
             if (_scopes[i].TryGetValue(name, out var expr))
@@ -83,7 +86,7 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
         if (prefixExpression.Operator == "!")
         {
-            if (right is PrefixExpression {Operator: "!", Right: BooleanLiteral} innerPrefix1)
+            if (right is PrefixExpression { Operator: "!", Right: BooleanLiteral } innerPrefix1)
                 return (innerPrefix1.Right, true);
 
             if (right is BooleanLiteral booleanLiteral)
@@ -104,12 +107,15 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
                 return (new IntegerLiteral(new Token(TokenType.Integer, $"{value}"), value), true);
             }
 
-            if (right is PrefixExpression {Operator: "-", Right: IntegerLiteral} innerPrefix2)
+            if (right is PrefixExpression { Operator: "-", Right: IntegerLiteral } innerPrefix2)
                 return (innerPrefix2.Right, true);
         }
 
         if (modified)
-            return (new PrefixExpression(prefixExpression.Token, prefixExpression.Operator, right), true);
+            return (
+                new PrefixExpression(prefixExpression.Token, prefixExpression.Operator, right!),
+                true
+            );
 
         return (prefixExpression, false);
     }
@@ -126,23 +132,38 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         {
             case "==":
             {
-                if (left is BooleanLiteral leftBooleanLiteral && right is BooleanLiteral rightBooleanLiteral)
+                if (
+                    left is BooleanLiteral leftBooleanLiteral
+                    && right is BooleanLiteral rightBooleanLiteral
+                )
                     return (
                         leftBooleanLiteral.Value == rightBooleanLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                     return (
                         leftIntegerLiteral.Value == rightIntegerLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
-                if (left is StringLiteral leftStringLiteral && right is StringLiteral rightStringLiteral)
+                if (
+                    left is StringLiteral leftStringLiteral
+                    && right is StringLiteral rightStringLiteral
+                )
                     return (
                         leftStringLiteral.Value == rightStringLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
                 if (left is Identifier li && right is Identifier ri && li.Value == ri.Value)
                     return (BooleanLiteral.True, true);
@@ -151,23 +172,38 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             }
             case "!=":
             {
-                if (left is BooleanLiteral leftBooleanLiteral && right is BooleanLiteral rightBooleanLiteral)
+                if (
+                    left is BooleanLiteral leftBooleanLiteral
+                    && right is BooleanLiteral rightBooleanLiteral
+                )
                     return (
                         leftBooleanLiteral.Value != rightBooleanLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                     return (
                         leftIntegerLiteral.Value != rightIntegerLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
-                if (left is StringLiteral leftStringLiteral && right is StringLiteral rightStringLiteral)
+                if (
+                    left is StringLiteral leftStringLiteral
+                    && right is StringLiteral rightStringLiteral
+                )
                     return (
                         leftStringLiteral.Value != rightStringLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
 
                 if (left is Identifier li && right is Identifier ri && li.Value == ri.Value)
                     return (BooleanLiteral.False, true);
@@ -176,7 +212,10 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             }
             case "+":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                 {
                     if (leftIntegerLiteral.Value == 0)
                         return (right, true);
@@ -185,11 +224,20 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
                     return (
                         new IntegerLiteral(
-                            new Token(TokenType.Integer, $"{leftIntegerLiteral.Value + rightIntegerLiteral.Value}"),
-                            leftIntegerLiteral.Value + rightIntegerLiteral.Value), true);
+                            new Token(
+                                TokenType.Integer,
+                                $"{leftIntegerLiteral.Value + rightIntegerLiteral.Value}"
+                            ),
+                            leftIntegerLiteral.Value + rightIntegerLiteral.Value
+                        ),
+                        true
+                    );
                 }
 
-                if (left is StringLiteral leftStringLiteral && right is StringLiteral rightStringLiteral)
+                if (
+                    left is StringLiteral leftStringLiteral
+                    && right is StringLiteral rightStringLiteral
+                )
                 {
                     if (leftStringLiteral.Value == "")
                         return (right, true);
@@ -198,15 +246,24 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
                     return (
                         new StringLiteral(
-                            new Token(TokenType.String, $"{leftStringLiteral.Value + rightStringLiteral.Value}"),
-                            leftStringLiteral.Value + rightStringLiteral.Value), true);
+                            new Token(
+                                TokenType.String,
+                                $"{leftStringLiteral.Value + rightStringLiteral.Value}"
+                            ),
+                            leftStringLiteral.Value + rightStringLiteral.Value
+                        ),
+                        true
+                    );
                 }
 
                 break;
             }
             case "-":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                 {
                     if (leftIntegerLiteral.Value == rightIntegerLiteral.Value)
                         return (new IntegerLiteral(new Token(TokenType.Integer, "0"), 0), true);
@@ -218,15 +275,24 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
                         return (new PrefixExpression(infixExpression.Token, "-", right), true);
                     return (
                         new IntegerLiteral(
-                            new Token(TokenType.Integer, $"{leftIntegerLiteral.Value - rightIntegerLiteral.Value}"),
-                            leftIntegerLiteral.Value - rightIntegerLiteral.Value), true);
+                            new Token(
+                                TokenType.Integer,
+                                $"{leftIntegerLiteral.Value - rightIntegerLiteral.Value}"
+                            ),
+                            leftIntegerLiteral.Value - rightIntegerLiteral.Value
+                        ),
+                        true
+                    );
                 }
 
                 break;
             }
             case "*":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                 {
                     if (leftIntegerLiteral.Value == 0 || rightIntegerLiteral.Value == 0)
                         return (new IntegerLiteral(new Token(TokenType.Integer, "0"), 0), true);
@@ -238,16 +304,25 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
                     return (
                         new IntegerLiteral(
-                            new Token(TokenType.Integer, $"{leftIntegerLiteral.Value * rightIntegerLiteral.Value}"),
-                            leftIntegerLiteral.Value * rightIntegerLiteral.Value), true);
+                            new Token(
+                                TokenType.Integer,
+                                $"{leftIntegerLiteral.Value * rightIntegerLiteral.Value}"
+                            ),
+                            leftIntegerLiteral.Value * rightIntegerLiteral.Value
+                        ),
+                        true
+                    );
                 }
 
                 break;
             }
             case "/":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral &&
-                    rightIntegerLiteral.Value != 0)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                    && rightIntegerLiteral.Value != 0
+                )
                 {
                     if (leftIntegerLiteral.Value == 0)
                         return (new IntegerLiteral(new Token(TokenType.Integer, "0"), 0), true);
@@ -256,34 +331,53 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
                     return (
                         new IntegerLiteral(
-                            new Token(TokenType.Integer, $"{leftIntegerLiteral.Value / rightIntegerLiteral.Value}"),
-                            leftIntegerLiteral.Value / rightIntegerLiteral.Value), true);
+                            new Token(
+                                TokenType.Integer,
+                                $"{leftIntegerLiteral.Value / rightIntegerLiteral.Value}"
+                            ),
+                            leftIntegerLiteral.Value / rightIntegerLiteral.Value
+                        ),
+                        true
+                    );
                 }
 
                 break;
             }
             case ">":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                     return (
                         leftIntegerLiteral.Value > rightIntegerLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
                 break;
             }
             case "<":
             {
-                if (left is IntegerLiteral leftIntegerLiteral && right is IntegerLiteral rightIntegerLiteral)
+                if (
+                    left is IntegerLiteral leftIntegerLiteral
+                    && right is IntegerLiteral rightIntegerLiteral
+                )
                     return (
                         leftIntegerLiteral.Value < rightIntegerLiteral.Value
                             ? BooleanLiteral.True
-                            : BooleanLiteral.False, true);
+                            : BooleanLiteral.False,
+                        true
+                    );
                 break;
             }
         }
 
         if (modified)
-            return (new InfixExpression(infixExpression.Token, left, infixExpression.Operator, right), true);
+            return (
+                new InfixExpression(infixExpression.Token, left!, infixExpression.Operator, right!),
+                true
+            );
 
         return (infixExpression, false);
     }
@@ -300,7 +394,8 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         modified |= conditionModified;
         var (consequence, consequenceModified) = ifExpression.Consequence.Accept(this);
         modified |= consequenceModified;
-        var (alternative, alternativeModified) = ifExpression.Alternative?.Accept(this) ?? (null, false);
+        var (alternative, alternativeModified) =
+            ifExpression.Alternative?.Accept(this) ?? (null, false);
         modified |= alternativeModified;
 
         // If condition is a boolean literal, we can simplify an IfExpression:
@@ -310,8 +405,11 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             {
                 // true -> use consequence (expression context might require further handling outside this optimizer)
                 // return original IfExpression with simplified condition/consequence for safety, but if consequence is a single expression statement, we can return that expression
-                if (consequence is BlockStatement bs && bs.Statements.Count == 1 &&
-                    bs.Statements[0] is ExpressionStatement es)
+                if (
+                    consequence is BlockStatement bs
+                    && bs.Statements.Count == 1
+                    && bs.Statements[0] is ExpressionStatement es
+                )
                     return (es.Expression, true);
 
                 // otherwise keep the if with simplified parts
@@ -328,8 +426,14 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
         if (modified)
             return (
-                new IfExpression(ifExpression.Token, condition, (BlockStatement) consequence,
-                    (BlockStatement) alternative), true);
+                new IfExpression(
+                    ifExpression.Token,
+                    condition!,
+                    (BlockStatement)consequence!,
+                    (BlockStatement?)alternative
+                ),
+                true
+            );
 
         return (ifExpression, false);
     }
@@ -351,8 +455,16 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
         if (modified)
             return (
-                new FunctionLiteral(functionLiteral.Token, functionLiteral.Parameters, (BlockStatement) body)
-                    {Name = functionLiteral.Name}, true);
+                new FunctionLiteral(
+                    functionLiteral.Token,
+                    functionLiteral.Parameters,
+                    (BlockStatement)body!
+                )
+                {
+                    Name = functionLiteral.Name,
+                },
+                true
+            );
 
         return (functionLiteral, false);
     }
@@ -369,11 +481,11 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         {
             var (argumentExpression, argumentModified) = argument.Accept(this);
             modified |= argumentModified;
-            arguments.Add(argumentExpression);
+            arguments.Add(argumentExpression!);
         }
 
         if (modified)
-            return (new CallExpression(callExpression.Token, function, arguments), true);
+            return (new CallExpression(callExpression.Token, function!, arguments), true);
 
         return (callExpression, false);
     }
@@ -392,10 +504,11 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         {
             var (elementExpression, elementModified) = element.Accept(this);
             modified |= elementModified;
-            elements.Add(elementExpression);
+            elements.Add(elementExpression!);
         }
 
-        if (modified) return (new ArrayLiteral(arrayLiteral.Token, elements), true);
+        if (modified)
+            return (new ArrayLiteral(arrayLiteral.Token, elements), true);
 
         return (arrayLiteral, false);
     }
@@ -412,13 +525,13 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
 
         if (left is ArrayLiteral arrayLit && index is IntegerLiteral indexLit)
         {
-            var idx = (int) indexLit.Value;
+            var idx = (int)indexLit.Value;
             if (idx >= 0 && idx < arrayLit.Elements.Count)
                 return (arrayLit.Elements[idx], true);
         }
 
         if (modified)
-            return (new IndexExpression(indexExpression.Token, left, index), true);
+            return (new IndexExpression(indexExpression.Token, left!, index!), true);
 
         return (indexExpression, false);
     }
@@ -435,10 +548,11 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             var (valueExpression, valueModified) = value.Accept(this);
             modified |= valueModified;
 
-            pairs.Add(keyExpression, valueExpression);
+            pairs.Add(keyExpression!, valueExpression!);
         }
 
-        if (modified) return (new HashLiteral(hashLiteral.Token, pairs), true);
+        if (modified)
+            return (new HashLiteral(hashLiteral.Token, pairs), true);
 
         return (hashLiteral, false);
     }
@@ -465,7 +579,10 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         }
 
         // Only propagate if immutable and literal
-        if (!_mutableVariables[varName] && value is IntegerLiteral or BooleanLiteral or StringLiteral)
+        if (
+            !_mutableVariables[varName]
+            && value is IntegerLiteral or BooleanLiteral or StringLiteral
+        )
         {
             var current = CurrentScope();
             current[varName] = value;
@@ -487,7 +604,7 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             }
 
         if (modified)
-            return (new LetStatement(letStatement.Token, letStatement.Name, value), true);
+            return (new LetStatement(letStatement.Token, letStatement.Name, value!), true);
 
         return (letStatement, false);
     }
@@ -496,8 +613,11 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
     {
         var modified = false;
 
-        var (returnValue, returnValueModified) = returnStatement.ReturnValue?.Accept(this) ?? (null, false);
+        var (returnValue, returnValueModified) = returnStatement.ReturnValue.Accept(this);
         modified |= returnValueModified;
+
+        if (returnValue is null)
+            throw new InvalidOperationException("Optimizer produced a null return expression.");
 
         if (modified)
             return (new ReturnStatement(returnStatement.Token, returnValue), true);
@@ -513,7 +633,7 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
         modified |= expressionModified;
 
         if (modified)
-            return (new ExpressionStatement(expressionStatement.Token, expression), true);
+            return (new ExpressionStatement(expressionStatement.Token, expression!), true);
 
         return (expressionStatement, false);
     }
@@ -540,17 +660,21 @@ public class Optimizer : IExpressionVisitor<(Expression, bool)>, IStatementVisit
             modified |= statementModified;
 
             // NEW: Check for if-expression with constant false condition
-            if (newStatement is ExpressionStatement {Expression: IfExpression ifExpr})
-                if (ifExpr.Condition is BooleanLiteral {Value: false} && ifExpr.Alternative == null)
+            if (newStatement is ExpressionStatement { Expression: IfExpression ifExpr })
+                if (
+                    ifExpr.Condition is BooleanLiteral { Value: false }
+                    && ifExpr.Alternative == null
+                )
                 {
                     // Skip this statement entirely - it will never execute
                     modified = true;
                     continue;
                 }
 
-            statements.Add(newStatement);
+            statements.Add(newStatement!);
 
-            if (newStatement is ReturnStatement) sawReturn = true;
+            if (newStatement is ReturnStatement)
+                sawReturn = true;
         }
 
         _scopes.RemoveAt(_scopes.Count - 1);

@@ -37,7 +37,7 @@ public class SemanticAnalyzer
         Variable,
         Function,
         Parameter,
-        Builtin
+        Builtin,
     }
 
     private readonly List<string> _errors = [];
@@ -55,7 +55,7 @@ public class SemanticAnalyzer
     /// <param name="node">The AST node to analyze</param>
     /// <param name="builtinNamesAndArguments">Names and argument count of the built-in functions</param>
     /// <returns>True if analysis succeeded without errors, false otherwise</returns>
-    public bool Analyze(Node node, IEnumerable<(string, int)> builtinNamesAndArguments = null)
+    public bool Analyze(Node node, IEnumerable<(string, int)>? builtinNamesAndArguments = null)
     {
         _errors.Clear();
         _warnings.Clear();
@@ -84,11 +84,13 @@ public class SemanticAnalyzer
         switch (node)
         {
             case ProgramNode program:
-                foreach (var statement in program.Statements) AnalyzeNode(statement);
+                foreach (var statement in program.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case BlockStatement blockStatement:
-                foreach (var statement in blockStatement.Statements) AnalyzeNode(statement);
+                foreach (var statement in blockStatement.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case ExpressionStatement expressionStatement:
@@ -106,7 +108,8 @@ public class SemanticAnalyzer
             case IfExpression ifExpression:
                 AnalyzeNode(ifExpression.Condition);
                 AnalyzeNode(ifExpression.Consequence);
-                if (ifExpression.Alternative != null) AnalyzeNode(ifExpression.Alternative);
+                if (ifExpression.Alternative != null)
+                    AnalyzeNode(ifExpression.Alternative);
                 break;
 
             case FunctionLiteral functionLiteral:
@@ -136,7 +139,8 @@ public class SemanticAnalyzer
                 break;
 
             case ArrayLiteral arrayLiteral:
-                foreach (var element in arrayLiteral.Elements) AnalyzeNode(element);
+                foreach (var element in arrayLiteral.Elements)
+                    AnalyzeNode(element);
                 break;
 
             case HashLiteral hashLiteral:
@@ -172,7 +176,8 @@ public class SemanticAnalyzer
 
     private void AnalyzeReturnStatement(ReturnStatement returnStatement)
     {
-        if (!_isInFunction) AddError("Return statement outside of function");
+        if (!_isInFunction)
+            AddError("Return statement outside of function");
 
         AnalyzeNode(returnStatement.ReturnValue);
     }
@@ -191,7 +196,8 @@ public class SemanticAnalyzer
         var parameterNames = new HashSet<string>();
         foreach (var param in functionLiteral.Parameters)
         {
-            if (!parameterNames.Add(param.Value)) AddError($"Duplicate parameter name '{param.Value}' in function");
+            if (!parameterNames.Add(param.Value))
+                AddError($"Duplicate parameter name '{param.Value}' in function");
             _scopes.Peek().Define(param.Value, SymbolKind.Parameter);
         }
 
@@ -216,7 +222,8 @@ public class SemanticAnalyzer
         }
 
         // Analyze arguments
-        foreach (var arg in callExpression.Arguments) AnalyzeNode(arg);
+        foreach (var arg in callExpression.Arguments)
+            AnalyzeNode(arg);
 
         // Could add arity checking for known built-ins
         if (callExpression.Function is Identifier builtinIdentifier)
@@ -226,7 +233,8 @@ public class SemanticAnalyzer
     private void AnalyzeIdentifier(Identifier identifier)
     {
         var symbol = Resolve(identifier.Value);
-        if (symbol == null) AddError($"Undefined identifier '{identifier.Value}'");
+        if (symbol == null)
+            AddError($"Undefined identifier '{identifier.Value}'");
     }
 
     private void CheckBuiltinArity(string name, int argCount)

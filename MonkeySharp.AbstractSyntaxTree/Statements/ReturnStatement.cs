@@ -26,7 +26,7 @@ public sealed class ReturnStatement(Token token, Expression returnValue) : State
     /// <returns>A string in the format "return value;" where value is the string representation of the return expression.</returns>
     public override string ToString()
     {
-        return $"{TokenLiteral} {ReturnValue?.ToString() ?? string.Empty};";
+        return $"{TokenLiteral} {ReturnValue};";
     }
 
     /// <summary>

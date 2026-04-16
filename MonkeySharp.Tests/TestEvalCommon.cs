@@ -1,7 +1,7 @@
-﻿using MonkeySharp.AbstractSyntaxTree;
-using MonkeySharp.Interpreter;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Text;
+using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.Interpreter;
 using MonkeySharp.Interpreter.Objects;
 
 namespace MonkeySharp.Tests;
@@ -14,14 +14,14 @@ internal static class TestEvalCommon
         var l = new Lexer(input);
         var p = new Parser(l);
         var program = p.ParseProgram();
-        var evaluator = new Evaluator();
-        return evaluator.Eval(program, env);
+        return Evaluator.Eval(program, env);
     }
 
     internal static bool CheckParserErrors(Parser p, out string errorMessage)
     {
         errorMessage = string.Empty;
-        if (p.Errors.Count == 0) return true;
+        if (p.Errors.Count == 0)
+            return true;
         var sb = new StringBuilder();
         sb.AppendLine($"parser has {p.Errors.Count} errors");
         foreach (var error in p.Errors)
@@ -67,8 +67,11 @@ internal static class TestEvalCommon
         return true;
     }
 
-    private static bool TestHashValue(Value obj, IReadOnlyDictionary<HashKey, object> dictionary,
-        out string errorMessage)
+    private static bool TestHashValue(
+        Value obj,
+        IReadOnlyDictionary<HashKey, object> dictionary,
+        out string errorMessage
+    )
     {
         errorMessage = string.Empty;
         if (!obj.IsHash)
@@ -79,7 +82,8 @@ internal static class TestEvalCommon
 
         if (obj.HashPairs.Count != dictionary.Count)
         {
-            errorMessage = $"wrong num of elements. want={dictionary.Count}, got={obj.HashPairs.Count}";
+            errorMessage =
+                $"wrong num of elements. want={dictionary.Count}, got={obj.HashPairs.Count}";
             return false;
         }
 
@@ -101,7 +105,8 @@ internal static class TestEvalCommon
 
         if (obj.ArrayElements.Count != objects.Length)
         {
-            errorMessage = $"wrong num of elements. want={objects.Length}, got={obj.ArrayElements.Count}";
+            errorMessage =
+                $"wrong num of elements. want={objects.Length}, got={obj.ArrayElements.Count}";
             return false;
         }
 

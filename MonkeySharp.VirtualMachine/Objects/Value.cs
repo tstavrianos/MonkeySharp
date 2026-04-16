@@ -16,7 +16,7 @@ public enum ValueKind
     Hash,
     Builtin,
     CompiledFunction,
-    Closure
+    Closure,
 }
 
 // Dedicated classes to avoid tuple boxing
@@ -54,45 +54,47 @@ public readonly struct Value : IEquatable<Value>
 
     private readonly ValueKind _kind;
     private readonly long _intValue;
-    private readonly object _objValue;
+    private readonly object? _objValue;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Value(ValueKind valueKind, long val, object o)
+    private Value(ValueKind valueKind, long val, object? o)
     {
         _kind = valueKind;
         _intValue = val;
         _objValue = o;
     }
 
-    public string Type => _kind switch
-    {
-        ValueKind.Int => "INTEGER",
-        ValueKind.String => "STRING",
-        ValueKind.Boolean => "BOOLEAN",
-        ValueKind.Null => "NULL",
-        ValueKind.Error => "ERROR",
-        ValueKind.Array => "ARRAY",
-        ValueKind.Hash => "HASH",
-        ValueKind.Builtin => "BUILTIN",
-        ValueKind.CompiledFunction => "COMPILED_FUNCTION_OBJ",
-        ValueKind.Closure => "CLOSURE",
-        _ => "UNKNOWN"
-    };
+    public string Type =>
+        _kind switch
+        {
+            ValueKind.Int => "INTEGER",
+            ValueKind.String => "STRING",
+            ValueKind.Boolean => "BOOLEAN",
+            ValueKind.Null => "NULL",
+            ValueKind.Error => "ERROR",
+            ValueKind.Array => "ARRAY",
+            ValueKind.Hash => "HASH",
+            ValueKind.Builtin => "BUILTIN",
+            ValueKind.CompiledFunction => "COMPILED_FUNCTION_OBJ",
+            ValueKind.Closure => "CLOSURE",
+            _ => "UNKNOWN",
+        };
 
-    public string Inspect => _kind switch
-    {
-        ValueKind.Int => _intValue.ToString(),
-        ValueKind.String => (string) _objValue,
-        ValueKind.Boolean => _intValue != 0 ? "true" : "false",
-        ValueKind.Null => "null",
-        ValueKind.Error => (string) _objValue,
-        ValueKind.Array => ArrayInspect,
-        ValueKind.Hash => HashInspect,
-        ValueKind.Builtin => "<builtin function>",
-        ValueKind.CompiledFunction => CompiledFunctionInspect,
-        ValueKind.Closure => ClosureInspect,
-        _ => _objValue?.ToString() ?? "null"
-    };
+    public string Inspect =>
+        _kind switch
+        {
+            ValueKind.Int => _intValue.ToString(),
+            ValueKind.String => (string)_objValue!,
+            ValueKind.Boolean => _intValue != 0 ? "true" : "false",
+            ValueKind.Null => "null",
+            ValueKind.Error => (string)_objValue!,
+            ValueKind.Array => ArrayInspect,
+            ValueKind.Hash => HashInspect,
+            ValueKind.Builtin => "<builtin function>",
+            ValueKind.CompiledFunction => CompiledFunctionInspect,
+            ValueKind.Closure => ClosureInspect,
+            _ => _objValue?.ToString() ?? "null",
+        };
 
     // Basic type factory methods
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -143,8 +145,11 @@ public readonly struct Value : IEquatable<Value>
 
     public static Value CompiledFunction(byte[] instructions, int numLocals, int numParameters)
     {
-        return new Value(ValueKind.CompiledFunction, 0,
-            new CompiledFunctionData(instructions, numLocals, numParameters));
+        return new Value(
+            ValueKind.CompiledFunction,
+            0,
+            new CompiledFunctionData(instructions, numLocals, numParameters)
+        );
     }
 
     public static Value Closure(Value compiledFunction, Value[] freeVariables)
@@ -159,7 +164,7 @@ public readonly struct Value : IEquatable<Value>
         get => _kind == ValueKind.Int ? _intValue : 0;
     }
 
-    public string StringValue => _kind == ValueKind.String ? (string) _objValue : null;
+    public string? StringValue => _kind == ValueKind.String ? (string)_objValue! : null;
 
     public bool BooleanValue
     {
@@ -167,26 +172,25 @@ public readonly struct Value : IEquatable<Value>
         get => _kind == ValueKind.Boolean && _intValue != 0;
     }
 
-    public string ErrorMessage
+    public string? ErrorMessage
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _kind == ValueKind.Error ? (string) _objValue : null;
+        get => _kind == ValueKind.Error ? (string)_objValue! : null;
     }
 
     // Complex value accessors - now returning dedicated classes instead of tuples
-    public List<Value> ArrayElements => _kind == ValueKind.Array ? (List<Value>) _objValue : null;
+    public List<Value>? ArrayElements => _kind == ValueKind.Array ? (List<Value>)_objValue! : null;
 
-    public Dictionary<HashKey, (Value Key, Value Value)> HashPairs =>
-        _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>) _objValue : null;
+    public Dictionary<HashKey, (Value Key, Value Value)>? HashPairs =>
+        _kind == ValueKind.Hash ? (Dictionary<HashKey, (Value Key, Value Value)>)_objValue! : null;
 
-    public Func<IReadOnlyList<Value>, Value> BuiltinFunction =>
-        _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>) _objValue : null;
+    public Func<IReadOnlyList<Value>, Value>? BuiltinFunction =>
+        _kind == ValueKind.Builtin ? (Func<IReadOnlyList<Value>, Value>)_objValue! : null;
 
-    public CompiledFunctionData CompiledFunctionData =>
-        _kind == ValueKind.CompiledFunction ? (CompiledFunctionData) _objValue : null;
+    public CompiledFunctionData? CompiledFunctionData =>
+        _kind == ValueKind.CompiledFunction ? (CompiledFunctionData)_objValue! : null;
 
-    public ClosureData ClosureData =>
-        _kind == ValueKind.Closure ? (ClosureData) _objValue : null;
+    public ClosureData? ClosureData => _kind == ValueKind.Closure ? (ClosureData)_objValue! : null;
 
     // Helper methods for type checking
     public bool IsInteger
@@ -271,9 +275,14 @@ public readonly struct Value : IEquatable<Value>
 
             var ss = new System.Text.StringBuilder();
             ss.Append('{');
-            ss.Append(string.Join(", ",
-                pairs.OrderBy(x => x.Value.Key.Inspect)
-                    .Select(x => $"{x.Value.Key.Inspect}: {x.Value.Value.Inspect}")));
+            ss.Append(
+                string.Join(
+                    ", ",
+                    pairs
+                        .OrderBy(x => x.Value.Key.Inspect)
+                        .Select(x => $"{x.Value.Key.Inspect}: {x.Value.Value.Inspect}")
+                )
+            );
             ss.Append('}');
             return ss.ToString();
         }
@@ -294,10 +303,10 @@ public readonly struct Value : IEquatable<Value>
     {
         return _kind switch
         {
-            ValueKind.Int => new HashKey(Type, (ulong) _intValue),
-            ValueKind.String => ComputeStringHash((string) _objValue),
-            ValueKind.Boolean => new HashKey(Type, (ulong) (_intValue != 0 ? 1 : 0)),
-            _ => throw new InvalidOperationException($"Type {Type} is not hashable")
+            ValueKind.Int => new HashKey(Type, (ulong)_intValue),
+            ValueKind.String => ComputeStringHash((string)_objValue!),
+            ValueKind.Boolean => new HashKey(Type, (ulong)(_intValue != 0 ? 1 : 0)),
+            _ => throw new InvalidOperationException($"Type {Type} is not hashable"),
         };
     }
 
@@ -319,17 +328,21 @@ public readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(Value other)
     {
-        return _kind == other._kind && _intValue == other._intValue && Equals(_objValue, other._objValue);
+        return _kind == other._kind
+            && _intValue == other._intValue
+            && Equals(_objValue, other._objValue);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is Value other && Equals(other);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine((int) _kind, _intValue, _objValue);
+        return HashCode.Combine((int)_kind, _intValue, _objValue);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -347,17 +360,22 @@ public readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsTruthy()
     {
-        if (IsNull) return false;
-        if (IsBoolean && !BooleanValue) return false;
+        if (IsNull)
+            return false;
+        if (IsBoolean && !BooleanValue)
+            return false;
         return true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value InfixOperation(Value left, OpCode op, Value right)
     {
-        if (left._kind != right._kind) return Error($"unknown operator: {left.Type} {op} {right.Type}");
-        if (op == OpCode.Equal) return left == right ? True : False;
-        if (op == OpCode.NotEqual) return left != right ? True : False;
+        if (left._kind != right._kind)
+            return Error($"unknown operator: {left.Type} {op} {right.Type}");
+        if (op == OpCode.Equal)
+            return left == right ? True : False;
+        if (op == OpCode.NotEqual)
+            return left != right ? True : False;
         if (left.IsInteger && right.IsInteger)
             return op switch
             {
@@ -366,7 +384,7 @@ public readonly struct Value : IEquatable<Value>
                 OpCode.Multiply => Integer(left.IntValue * right.IntValue),
                 OpCode.Divide => Integer(left.IntValue / right.IntValue),
                 OpCode.GreaterThan => left.IntValue > right.IntValue ? True : False,
-                _ => Error($"unknown operator: {left.Type} {op} {right.Type}")
+                _ => Error($"unknown operator: {left.Type} {op} {right.Type}"),
             };
 
         if (left.IsString && right.IsString && op == OpCode.Add)
@@ -387,7 +405,8 @@ public readonly struct Value : IEquatable<Value>
             return False;
         }
 
-        if (op == OpCode.Minus && right.IsInteger) return Integer(-right.IntValue);
+        if (op == OpCode.Minus && right.IsInteger)
+            return Integer(-right.IntValue);
         return Error($"unknown operator: {op}{right.Type}");
     }
 }

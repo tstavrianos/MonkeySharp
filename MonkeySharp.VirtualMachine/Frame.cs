@@ -19,6 +19,6 @@ public class Frame
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Instructions()
     {
-        return Closure.ClosureData.Function.CompiledFunctionData.Instructions;
+        return Closure.ClosureData!.Function.CompiledFunctionData!.Instructions;
     }
 }

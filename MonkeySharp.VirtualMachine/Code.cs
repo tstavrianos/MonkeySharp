@@ -10,56 +10,59 @@ public static class Code
 {
     private static readonly Dictionary<OpCode, Definition> Definitions = new()
     {
-        {OpCode.Constant, new Definition("OpConstant", [2])},
-        {OpCode.Add, new Definition("OpAdd", [])},
-        {OpCode.Pop, new Definition("OpPop", [])},
-        {OpCode.Subtract, new Definition("OpSub", [])},
-        {OpCode.Multiply, new Definition("OpMul", [])},
-        {OpCode.Divide, new Definition("OpDiv", [])},
-        {OpCode.True, new Definition("OpTrue", [])},
-        {OpCode.False, new Definition("OpFalse", [])},
-        {OpCode.Equal, new Definition("OpEqual", [])},
-        {OpCode.NotEqual, new Definition("OpNotEqual", [])},
-        {OpCode.GreaterThan, new Definition("OpGreaterThan", [])},
-        {OpCode.Minus, new Definition("OpMinus", [])},
-        {OpCode.Bang, new Definition("OpBang", [])},
-        {OpCode.JumpNotTruthy, new Definition("OpJumpNotTruthy", [2])},
-        {OpCode.Jump, new Definition("OpJump", [2])},
-        {OpCode.Null, new Definition("OpNull", [])},
-        {OpCode.SetGlobal, new Definition("OpSetGlobal", [2])},
-        {OpCode.GetGlobal, new Definition("OpGetGlobal", [2])},
-        {OpCode.Array, new Definition("OpArray", [2])},
-        {OpCode.Hash, new Definition("OpHash", [2])},
-        {OpCode.Index, new Definition("OpIndex", [])},
-        {OpCode.Call, new Definition("OpCall", [1])},
-        {OpCode.ReturnValue, new Definition("OpReturnValue", [])},
-        {OpCode.Return, new Definition("OpReturn", [])},
-        {OpCode.GetLocal, new Definition("OpGetLocal", [1])},
-        {OpCode.SetLocal, new Definition("OpSetLocal", [1])},
-        {OpCode.GetBuiltin, new Definition("OpGetBuiltin", [1])},
-        {OpCode.Closure, new Definition("OpClosure", [2, 1])},
-        {OpCode.GetFree, new Definition("OpGetFree", [1])},
-        {OpCode.CurrentClosure, new Definition("OpCurrentClosure", [])},
-        {OpCode.TailCall, new Definition("OpTailCall", [1])}
+        { OpCode.Constant, new Definition("OpConstant", [2]) },
+        { OpCode.Add, new Definition("OpAdd", []) },
+        { OpCode.Pop, new Definition("OpPop", []) },
+        { OpCode.Subtract, new Definition("OpSub", []) },
+        { OpCode.Multiply, new Definition("OpMul", []) },
+        { OpCode.Divide, new Definition("OpDiv", []) },
+        { OpCode.True, new Definition("OpTrue", []) },
+        { OpCode.False, new Definition("OpFalse", []) },
+        { OpCode.Equal, new Definition("OpEqual", []) },
+        { OpCode.NotEqual, new Definition("OpNotEqual", []) },
+        { OpCode.GreaterThan, new Definition("OpGreaterThan", []) },
+        { OpCode.Minus, new Definition("OpMinus", []) },
+        { OpCode.Bang, new Definition("OpBang", []) },
+        { OpCode.JumpNotTruthy, new Definition("OpJumpNotTruthy", [2]) },
+        { OpCode.Jump, new Definition("OpJump", [2]) },
+        { OpCode.Null, new Definition("OpNull", []) },
+        { OpCode.SetGlobal, new Definition("OpSetGlobal", [2]) },
+        { OpCode.GetGlobal, new Definition("OpGetGlobal", [2]) },
+        { OpCode.Array, new Definition("OpArray", [2]) },
+        { OpCode.Hash, new Definition("OpHash", [2]) },
+        { OpCode.Index, new Definition("OpIndex", []) },
+        { OpCode.Call, new Definition("OpCall", [1]) },
+        { OpCode.ReturnValue, new Definition("OpReturnValue", []) },
+        { OpCode.Return, new Definition("OpReturn", []) },
+        { OpCode.GetLocal, new Definition("OpGetLocal", [1]) },
+        { OpCode.SetLocal, new Definition("OpSetLocal", [1]) },
+        { OpCode.GetBuiltin, new Definition("OpGetBuiltin", [1]) },
+        { OpCode.Closure, new Definition("OpClosure", [2, 1]) },
+        { OpCode.GetFree, new Definition("OpGetFree", [1]) },
+        { OpCode.CurrentClosure, new Definition("OpCurrentClosure", []) },
+        { OpCode.TailCall, new Definition("OpTailCall", [1]) },
     };
 
-    public static string LookUp(OpCode op, out Definition ret)
+    public static string? LookUp(OpCode op, out Definition ret)
     {
-        if (!Definitions.TryGetValue(op, out ret)) return $"opcode {op} undefined";
+        if (!Definitions.TryGetValue(op, out ret))
+            return $"opcode {op} undefined";
 
         return null;
     }
 
     public static byte[] Make(OpCode opCode, params int[] operands)
     {
-        if (!Definitions.TryGetValue(opCode, out var def)) return [];
+        if (!Definitions.TryGetValue(opCode, out var def))
+            return [];
 
         var instructionLen = 1;
 
-        foreach (var w in def.OperandWidths) instructionLen += w;
+        foreach (var w in def.OperandWidths)
+            instructionLen += w;
 
         var instruction = new byte[instructionLen];
-        instruction[0] = (byte) opCode;
+        instruction[0] = (byte)opCode;
 
         var offset = 1;
         for (var i = 0; i < operands.Length; i++)
@@ -69,10 +72,10 @@ public static class Code
             switch (width)
             {
                 case 2:
-                    BinaryPrimitives.WriteUInt16BigEndian(instruction.AsSpan(offset), (ushort) o);
+                    BinaryPrimitives.WriteUInt16BigEndian(instruction.AsSpan(offset), (ushort)o);
                     break;
                 case 1:
-                    instruction[offset] = (byte) o;
+                    instruction[offset] = (byte)o;
                     break;
             }
 
@@ -110,9 +113,9 @@ public static class Code
     {
         var ss = new StringBuilder();
         var i = 0;
-        for (; i < instruction.Count;)
+        for (; i < instruction.Count; )
         {
-            var err = LookUp((OpCode) instruction[i], out var def);
+            var err = LookUp((OpCode)instruction[i], out var def);
             if (!string.IsNullOrEmpty(err))
             {
                 ss.AppendLine($"ERROR: {err}");

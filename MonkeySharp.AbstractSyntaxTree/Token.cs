@@ -23,7 +23,7 @@ public readonly record struct Token
     /// </summary>
     /// <param name="type">The type of the token to initialize.</param>
     /// <param name="literal">The literal value associated with the token.</param>
-    internal Token(TokenType type, string literal)
+    internal Token(TokenType type, string? literal)
     {
         Type = type;
         Literal = literal ?? string.Empty;

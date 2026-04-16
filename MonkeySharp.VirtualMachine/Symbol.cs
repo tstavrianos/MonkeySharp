@@ -20,14 +20,16 @@ public readonly struct Symbol : IEquatable<Symbol>
         return Name == other.Name && Scope == other.Scope && Index == other.Index;
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
+        if (obj is null)
+            return false;
         return obj is Symbol other && Equals(other);
     }
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(Name, (int) Scope, Index);
+        return HashCode.Combine(Name, (int)Scope, Index);
     }
 
     public static bool operator ==(Symbol left, Symbol right)

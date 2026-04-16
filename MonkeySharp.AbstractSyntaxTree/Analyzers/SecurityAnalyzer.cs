@@ -12,7 +12,7 @@ public class SecurityAnalyzer
 {
     private class FunctionInfo
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public bool HasBaseCase { get; set; }
         public bool CallsItself { get; set; }
         public List<string> CallsOthers { get; } = [];
@@ -20,7 +20,7 @@ public class SecurityAnalyzer
 
     private readonly List<string> _warnings = [];
     private readonly Dictionary<string, FunctionInfo> _functions = new();
-    private FunctionInfo _currentFunction;
+    private FunctionInfo? _currentFunction;
     private bool _hasReturnInCurrentPath;
 
     public IReadOnlyList<string> Warnings => _warnings;
@@ -54,21 +54,24 @@ public class SecurityAnalyzer
         switch (node)
         {
             case ProgramNode program:
-                foreach (var statement in program.Statements) CollectFunctions(statement);
+                foreach (var statement in program.Statements)
+                    CollectFunctions(statement);
                 break;
 
-            case LetStatement {Value: FunctionLiteral functionLiteral} letStatement:
-                var funcInfo = new FunctionInfo {Name = letStatement.Name.Value};
+            case LetStatement { Value: FunctionLiteral functionLiteral } letStatement:
+                var funcInfo = new FunctionInfo { Name = letStatement.Name.Value };
                 _functions[letStatement.Name.Value] = funcInfo;
                 break;
 
             case BlockStatement blockStatement:
-                foreach (var statement in blockStatement.Statements) CollectFunctions(statement);
+                foreach (var statement in blockStatement.Statements)
+                    CollectFunctions(statement);
                 break;
 
             case IfExpression ifExpression:
                 CollectFunctions(ifExpression.Consequence);
-                if (ifExpression.Alternative != null) CollectFunctions(ifExpression.Alternative);
+                if (ifExpression.Alternative != null)
+                    CollectFunctions(ifExpression.Alternative);
                 break;
         }
     }
@@ -78,7 +81,8 @@ public class SecurityAnalyzer
         switch (node)
         {
             case ProgramNode program:
-                foreach (var statement in program.Statements) AnalyzeNode(statement);
+                foreach (var statement in program.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case BlockStatement blockStatement:
@@ -125,7 +129,8 @@ public class SecurityAnalyzer
                 break;
 
             case ArrayLiteral arrayLiteral:
-                foreach (var element in arrayLiteral.Elements) AnalyzeNode(element);
+                foreach (var element in arrayLiteral.Elements)
+                    AnalyzeNode(element);
                 break;
 
             case HashLiteral hashLiteral:
@@ -178,19 +183,23 @@ public class SecurityAnalyzer
 
         _hasReturnInCurrentPath = false;
 
-        if (ifExpression.Alternative != null) AnalyzeNode(ifExpression.Alternative);
+        if (ifExpression.Alternative != null)
+            AnalyzeNode(ifExpression.Alternative);
 
         var alternativeHasReturn = _hasReturnInCurrentPath;
 
         // If both branches return, the path returns
-        _hasReturnInCurrentPath = returnBeforeConsequence || (consequenceHasReturn && alternativeHasReturn);
+        _hasReturnInCurrentPath =
+            returnBeforeConsequence || (consequenceHasReturn && alternativeHasReturn);
 
         // Check for potential infinite recursion patterns
-        if (ifExpression.Condition is BooleanLiteral {Value: true})
+        if (ifExpression.Condition is BooleanLiteral { Value: true })
             // if (true) with recursive call and no return = infinite loop
-            if (!consequenceHasReturn && _currentFunction is {CallsItself: true})
-                AddWarning($"Potential infinite loop in function '{_currentFunction.Name}': " +
-                           "unconditional recursive call without guaranteed base case");
+            if (!consequenceHasReturn && _currentFunction is { CallsItself: true })
+                AddWarning(
+                    $"Potential infinite loop in function '{_currentFunction.Name}': "
+                        + "unconditional recursive call without guaranteed base case"
+                );
     }
 
     private void AnalyzeFunctionLiteral(FunctionLiteral functionLiteral)
@@ -213,8 +222,10 @@ public class SecurityAnalyzer
 
             // Warn about unbounded recursion
             if (_currentFunction.CallsItself && !_currentFunction.HasBaseCase)
-                AddWarning($"Function '{_currentFunction.Name}' contains recursion but no detectable base case. " +
-                           "This may lead to infinite recursion and stack overflow.");
+                AddWarning(
+                    $"Function '{_currentFunction.Name}' contains recursion but no detectable base case. "
+                        + "This may lead to infinite recursion and stack overflow."
+                );
         }
 
         _currentFunction = previousFunction;
@@ -228,11 +239,13 @@ public class SecurityAnalyzer
         {
             if (identifier.Value == _currentFunction.Name)
                 _currentFunction.CallsItself = true;
-            else if (_functions.ContainsKey(identifier.Value)) _currentFunction.CallsOthers.Add(identifier.Value);
+            else if (_functions.ContainsKey(identifier.Value))
+                _currentFunction.CallsOthers.Add(identifier.Value);
         }
 
         AnalyzeNode(callExpression.Function);
-        foreach (var arg in callExpression.Arguments) AnalyzeNode(arg);
+        foreach (var arg in callExpression.Arguments)
+            AnalyzeNode(arg);
     }
 
     private void DetectMutualRecursion()
@@ -251,17 +264,21 @@ public class SecurityAnalyzer
             if (HasRecursiveCycle(funcName, visited, path) && !AnyHasBaseCase(path))
             {
                 var cycle = string.Join(" -> ", path);
-                AddWarning($"Potential infinite mutual recursion detected: {cycle}. " +
-                           "None of these functions have a detectable base case.");
+                AddWarning(
+                    $"Potential infinite mutual recursion detected: {cycle}. "
+                        + "None of these functions have a detectable base case."
+                );
             }
         }
     }
 
     private bool HasRecursiveCycle(string funcName, HashSet<string> visited, List<string> path)
     {
-        if (path.Contains(funcName)) return true; // Found a cycle
+        if (path.Contains(funcName))
+            return true; // Found a cycle
 
-        if (!visited.Add(funcName)) return false; // Already checked this path
+        if (!visited.Add(funcName))
+            return false; // Already checked this path
 
         path.Add(funcName);
 
@@ -277,7 +294,8 @@ public class SecurityAnalyzer
     private bool AnyHasBaseCase(List<string> functionNames)
     {
         return functionNames.Any(name =>
-            _functions.TryGetValue(name, out var info) && info.HasBaseCase);
+            _functions.TryGetValue(name, out var info) && info.HasBaseCase
+        );
     }
 
     private void AddWarning(string message)

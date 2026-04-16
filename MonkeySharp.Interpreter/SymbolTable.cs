@@ -6,19 +6,21 @@ namespace MonkeySharp.Interpreter;
 public class SymbolTable
 {
     private readonly Dictionary<string, Value> _store;
-    private readonly SymbolTable _outer;
+    private readonly SymbolTable? _outer;
 
-    public SymbolTable(SymbolTable outer = null, int? capacity = null)
+    public SymbolTable(SymbolTable? outer = null, int? capacity = null)
     {
         _outer = outer;
-        _store = capacity != null
-            ? new Dictionary<string, Value>(capacity.Value)
-            : new Dictionary<string, Value>();
+        _store =
+            capacity != null
+                ? new Dictionary<string, Value>(capacity.Value)
+                : new Dictionary<string, Value>();
     }
 
     public (Value, bool) Get(string name)
     {
-        if (_store.TryGetValue(name, out var value)) return (value, true);
+        if (_store.TryGetValue(name, out var value))
+            return (value, true);
         if (_outer != null)
         {
             var (obj, found) = _outer.Get(name);

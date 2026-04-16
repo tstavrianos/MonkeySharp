@@ -13,7 +13,7 @@ public class DataFlowAnalyzer
     {
         Uninitialized,
         Initialized,
-        MaybeInitialized
+        MaybeInitialized,
     }
 
     private class DataFlowScope
@@ -51,11 +51,13 @@ public class DataFlowAnalyzer
         switch (node)
         {
             case ProgramNode program:
-                foreach (var statement in program.Statements) AnalyzeNode(statement);
+                foreach (var statement in program.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case BlockStatement blockStatement:
-                foreach (var statement in blockStatement.Statements) AnalyzeNode(statement);
+                foreach (var statement in blockStatement.Statements)
+                    AnalyzeNode(statement);
                 break;
 
             case ExpressionStatement expressionStatement:
@@ -80,7 +82,8 @@ public class DataFlowAnalyzer
 
             case CallExpression callExpression:
                 AnalyzeNode(callExpression.Function);
-                foreach (var arg in callExpression.Arguments) AnalyzeNode(arg);
+                foreach (var arg in callExpression.Arguments)
+                    AnalyzeNode(arg);
                 break;
 
             case Identifier identifier:
@@ -102,7 +105,8 @@ public class DataFlowAnalyzer
                 break;
 
             case ArrayLiteral arrayLiteral:
-                foreach (var element in arrayLiteral.Elements) AnalyzeNode(element);
+                foreach (var element in arrayLiteral.Elements)
+                    AnalyzeNode(element);
                 break;
 
             case HashLiteral hashLiteral:
@@ -165,7 +169,8 @@ public class DataFlowAnalyzer
         EnterScope();
 
         // Parameters are always initialized
-        foreach (var param in functionLiteral.Parameters) SetVariableState(param.Value, VariableState.Initialized);
+        foreach (var param in functionLiteral.Parameters)
+            SetVariableState(param.Value, VariableState.Initialized);
 
         AnalyzeNode(functionLiteral.Body);
 
@@ -182,7 +187,9 @@ public class DataFlowAnalyzer
                 AddError($"Variable '{identifier.Value}' is used before being assigned a value");
                 break;
             case VariableState.MaybeInitialized:
-                AddWarning($"Variable '{identifier.Value}' may be used before being assigned a value");
+                AddWarning(
+                    $"Variable '{identifier.Value}' may be used before being assigned a value"
+                );
                 break;
             case VariableState.Initialized:
                 // OK
@@ -215,10 +222,14 @@ public class DataFlowAnalyzer
     private void RestoreScopeState(Dictionary<string, VariableState> state)
     {
         CurrentScope().Variables.Clear();
-        foreach (var (name, varState) in state) CurrentScope().Variables[name] = varState;
+        foreach (var (name, varState) in state)
+            CurrentScope().Variables[name] = varState;
     }
 
-    private void MergeStates(Dictionary<string, VariableState> state1, Dictionary<string, VariableState> state2)
+    private void MergeStates(
+        Dictionary<string, VariableState> state1,
+        Dictionary<string, VariableState> state2
+    )
     {
         var currentScope = CurrentScope();
         currentScope.Variables.Clear();
@@ -235,7 +246,10 @@ public class DataFlowAnalyzer
             if (hasState1 && hasState2)
             {
                 // Variable exists in both: take most conservative state
-                if (varState1 == VariableState.Initialized && varState2 == VariableState.Initialized)
+                if (
+                    varState1 == VariableState.Initialized
+                    && varState2 == VariableState.Initialized
+                )
                     currentScope.Variables[varName] = VariableState.Initialized;
                 else
                     currentScope.Variables[varName] = VariableState.MaybeInitialized;
@@ -248,14 +262,17 @@ public class DataFlowAnalyzer
         }
     }
 
-    private void MergeStatesWithMaybe(Dictionary<string, VariableState> afterBranch,
-        Dictionary<string, VariableState> beforeBranch)
+    private void MergeStatesWithMaybe(
+        Dictionary<string, VariableState> afterBranch,
+        Dictionary<string, VariableState> beforeBranch
+    )
     {
         var currentScope = CurrentScope();
         currentScope.Variables.Clear();
 
         // Start with before state
-        foreach (var (name, state) in beforeBranch) currentScope.Variables[name] = state;
+        foreach (var (name, state) in beforeBranch)
+            currentScope.Variables[name] = state;
 
         // Variables initialized in the branch are maybe initialized overall
         foreach (var (name, state) in afterBranch)

@@ -14,9 +14,9 @@ namespace MonkeySharp.AbstractSyntaxTree;
 /// use.</remarks>
 public class Parser
 {
-    private delegate Expression PrefixParseFn();
+    private delegate Expression? PrefixParseFn();
 
-    private delegate Expression InfixParseFn(Expression left);
+    private delegate Expression? InfixParseFn(Expression left);
 
     private enum Precedence
     {
@@ -27,21 +27,21 @@ public class Parser
         Product,
         Prefix,
         Call,
-        Index
+        Index,
     }
 
     private static readonly Dictionary<TokenType, Precedence> Precedences = new()
     {
-        {TokenType.Equal, Precedence.Equals},
-        {TokenType.NotEqual, Precedence.Equals},
-        {TokenType.LessThan, Precedence.LessGreater},
-        {TokenType.GreaterThan, Precedence.LessGreater},
-        {TokenType.Plus, Precedence.Sum},
-        {TokenType.Minus, Precedence.Sum},
-        {TokenType.Slash, Precedence.Product},
-        {TokenType.Asterisk, Precedence.Product},
-        {TokenType.LeftParen, Precedence.Call},
-        {TokenType.LeftBracket, Precedence.Index}
+        { TokenType.Equal, Precedence.Equals },
+        { TokenType.NotEqual, Precedence.Equals },
+        { TokenType.LessThan, Precedence.LessGreater },
+        { TokenType.GreaterThan, Precedence.LessGreater },
+        { TokenType.Plus, Precedence.Sum },
+        { TokenType.Minus, Precedence.Sum },
+        { TokenType.Slash, Precedence.Product },
+        { TokenType.Asterisk, Precedence.Product },
+        { TokenType.LeftParen, Precedence.Call },
+        { TokenType.LeftBracket, Precedence.Index },
     };
 
     /// <summary>
@@ -53,7 +53,7 @@ public class Parser
     /// <param name="type">The type of token for which to obtain the corresponding prefix parse function.</param>
     /// <returns>A delegate representing the prefix parse function for the given token type, or null if no such function
     /// exists.</returns>
-    private PrefixParseFn GetPrefixParseFn(TokenType type)
+    private PrefixParseFn? GetPrefixParseFn(TokenType type)
     {
         return type switch
         {
@@ -67,7 +67,7 @@ public class Parser
             TokenType.String => ParseStringLiteral,
             TokenType.LeftBracket => ParseArrayLiteral,
             TokenType.LeftBrace => ParseHashLiteral,
-            _ => null
+            _ => null,
         };
     }
 
@@ -77,16 +77,21 @@ public class Parser
     /// <param name="type">The type of token for which to obtain the corresponding infix parse function.</param>
     /// <returns>An <see cref="InfixParseFn"/> delegate that parses infix expressions for the given token type, or <see
     /// langword="null"/> if the token type does not have an associated infix parse function.</returns>
-    private InfixParseFn GetInfixParseFn(TokenType type)
+    private InfixParseFn? GetInfixParseFn(TokenType type)
     {
         return type switch
         {
-            TokenType.Plus or TokenType.Minus or TokenType.Slash or TokenType.Asterisk or
-                TokenType.Equal or TokenType.NotEqual or TokenType.LessThan or TokenType.GreaterThan
-                => ParseInfixExpression,
+            TokenType.Plus
+            or TokenType.Minus
+            or TokenType.Slash
+            or TokenType.Asterisk
+            or TokenType.Equal
+            or TokenType.NotEqual
+            or TokenType.LessThan
+            or TokenType.GreaterThan => ParseInfixExpression,
             TokenType.LeftParen => ParseCallExpression,
             TokenType.LeftBracket => ParseIndexExpression,
-            _ => null
+            _ => null,
         };
     }
 
@@ -115,7 +120,7 @@ public class Parser
     /// literal syntax, the method returns <see langword="null"/>.</remarks>
     /// <returns>A <see cref="HashLiteral"/> representing the parsed hash literal, or <see langword="null"/> if parsing fails
     /// due to invalid syntax.</returns>
-    private HashLiteral ParseHashLiteral()
+    private HashLiteral? ParseHashLiteral()
     {
         var token = _current;
         var pairs = new Dictionary<Expression, Expression>();
@@ -123,14 +128,29 @@ public class Parser
         {
             NextToken();
             var key = ParseExpression(Precedence.Lowest);
-            if (!ExpectPeek(TokenType.Colon)) return null;
+            if (key is null)
+            {
+                _errors.Add("Invalid hash literal: expected an expression for the key.");
+                return null;
+            }
+
+            if (!ExpectPeek(TokenType.Colon))
+                return null;
             NextToken();
             var value = ParseExpression(Precedence.Lowest);
+            if (value is null)
+            {
+                _errors.Add("Invalid hash literal: expected an expression for the value.");
+                return null;
+            }
+
             pairs.Add(key, value);
-            if (!PeekTokenIs(TokenType.RightBrace) && !ExpectPeek(TokenType.Comma)) return null;
+            if (!PeekTokenIs(TokenType.RightBrace) && !ExpectPeek(TokenType.Comma))
+                return null;
         }
 
-        if (!ExpectPeek(TokenType.RightBrace)) return null;
+        if (!ExpectPeek(TokenType.RightBrace))
+            return null;
         return new HashLiteral(token, pairs);
     }
 
@@ -142,12 +162,19 @@ public class Parser
     /// collection being indexed.</param>
     /// <returns>An IndexExpression representing the parsed index operation, or null if the expression is not valid or the
     /// expected closing bracket is missing.</returns>
-    private IndexExpression ParseIndexExpression(Expression left)
+    private IndexExpression? ParseIndexExpression(Expression left)
     {
         var token = _current;
         NextToken();
         var index = ParseExpression(Precedence.Lowest);
-        if (!ExpectPeek(TokenType.RightBracket)) return null;
+        if (index is null)
+        {
+            _errors.Add("Invalid index expression: expected an index expression.");
+            return null;
+        }
+
+        if (!ExpectPeek(TokenType.RightBracket))
+            return null;
         return new IndexExpression(token, left, index);
     }
 
@@ -155,10 +182,13 @@ public class Parser
     /// Parses an array literal expression from the current position in the token stream.
     /// </summary>
     /// <returns>An <see cref="ArrayLiteral"/> representing the parsed array literal expression.</returns>
-    private ArrayLiteral ParseArrayLiteral()
+    private ArrayLiteral? ParseArrayLiteral()
     {
         var token = _current;
-        var elements = ParseExpressionList(TokenType.RightBracket) ?? [];
+        var elements = ParseExpressionList(TokenType.RightBracket);
+        if (elements is null)
+            return null;
+
         return new ArrayLiteral(token, elements);
     }
 
@@ -169,7 +199,7 @@ public class Parser
     /// end token is missing, the method returns null to indicate a parsing error.</remarks>
     /// <param name="end">The token type that marks the end of the expression list. Parsing continues until this token is found.</param>
     /// <returns>A list of parsed expressions, or null if the end token is not found as expected.</returns>
-    private List<Expression> ParseExpressionList(TokenType end)
+    private List<Expression>? ParseExpressionList(TokenType end)
     {
         List<Expression> expressions = [];
         if (PeekTokenIs(end))
@@ -179,15 +209,30 @@ public class Parser
         }
 
         NextToken();
-        expressions.Add(ParseExpression(Precedence.Lowest));
+        var expression = ParseExpression(Precedence.Lowest);
+        if (expression is null)
+        {
+            _errors.Add("Invalid expression list: expected an expression.");
+            return null;
+        }
+
+        expressions.Add(expression);
         while (PeekTokenIs(TokenType.Comma))
         {
             NextToken();
             NextToken();
-            expressions.Add(ParseExpression(Precedence.Lowest));
+            expression = ParseExpression(Precedence.Lowest);
+            if (expression is null)
+            {
+                _errors.Add("Invalid expression list: expected an expression after ','.");
+                return null;
+            }
+
+            expressions.Add(expression);
         }
 
-        if (!ExpectPeek(end)) return null;
+        if (!ExpectPeek(end))
+            return null;
         return expressions;
     }
 
@@ -206,10 +251,13 @@ public class Parser
     /// <param name="left">The expression representing the function or method being called. Typically the result of parsing an
     /// identifier or member access expression.</param>
     /// <returns>A CallExpression representing the parsed function or method call, including its arguments.</returns>
-    private CallExpression ParseCallExpression(Expression left)
+    private CallExpression? ParseCallExpression(Expression left)
     {
         var token = _current;
-        var arguments = ParseExpressionList(TokenType.RightParen) ?? [];
+        var arguments = ParseExpressionList(TokenType.RightParen);
+        if (arguments is null)
+            return null;
+
         return new CallExpression(token, left, arguments);
     }
 
@@ -221,13 +269,18 @@ public class Parser
     /// langword="null"/>.</remarks>
     /// <returns>A <see cref="FunctionLiteral"/> representing the parsed function, or <see langword="null"/> if parsing fails
     /// due to invalid syntax.</returns>
-    private FunctionLiteral ParseFunctionLiteral()
+    private FunctionLiteral? ParseFunctionLiteral()
     {
         var token = _current;
-        if (!ExpectPeek(TokenType.LeftParen)) return null;
+        if (!ExpectPeek(TokenType.LeftParen))
+            return null;
 
-        var parameters = ParseFunctionParameters() ?? [];
-        if (!ExpectPeek(TokenType.LeftBrace)) return null;
+        var parameters = ParseFunctionParameters();
+        if (parameters is null)
+            return null;
+
+        if (!ExpectPeek(TokenType.LeftBrace))
+            return null;
         var body = ParseBlockStatement();
         return new FunctionLiteral(token, parameters, body);
     }
@@ -240,7 +293,7 @@ public class Parser
     /// parenthesis is missing, the method returns <see langword="null"/> to indicate a parsing error.</remarks>
     /// <returns>A list of <see cref="Identifier"/> objects representing the parsed function parameters, or <see
     /// langword="null"/> if the parameter list is not properly closed with a right parenthesis.</returns>
-    private List<Identifier> ParseFunctionParameters()
+    private List<Identifier>? ParseFunctionParameters()
     {
         List<Identifier> identifiers = [];
         if (PeekTokenIs(TokenType.RightParen))
@@ -260,7 +313,8 @@ public class Parser
             identifiers.Add(ident);
         }
 
-        if (!ExpectPeek(TokenType.RightParen)) return null;
+        if (!ExpectPeek(TokenType.RightParen))
+            return null;
         return identifiers;
     }
 
@@ -272,20 +326,30 @@ public class Parser
     /// tokens are not found in the correct order, the method returns <see langword="null"/>.</remarks>
     /// <returns>An <see cref="IfExpression"/> representing the parsed 'if' expression, or <see langword="null"/> if parsing
     /// fails due to invalid syntax.</returns>
-    private IfExpression ParseIfExpression()
+    private IfExpression? ParseIfExpression()
     {
         var token = _current;
-        if (!ExpectPeek(TokenType.LeftParen)) return null;
+        if (!ExpectPeek(TokenType.LeftParen))
+            return null;
         NextToken();
         var condition = ParseExpression(Precedence.Lowest);
-        if (!ExpectPeek(TokenType.RightParen)) return null;
-        if (!ExpectPeek(TokenType.LeftBrace)) return null;
+        if (condition is null)
+        {
+            _errors.Add("Invalid if expression: expected a condition expression.");
+            return null;
+        }
+
+        if (!ExpectPeek(TokenType.RightParen))
+            return null;
+        if (!ExpectPeek(TokenType.LeftBrace))
+            return null;
         var consequence = ParseBlockStatement();
-        BlockStatement alternative = null;
+        BlockStatement? alternative = null;
         if (PeekTokenIs(TokenType.Else))
         {
             NextToken();
-            if (!ExpectPeek(TokenType.LeftBrace)) return null;
+            if (!ExpectPeek(TokenType.LeftBrace))
+                return null;
             alternative = ParseBlockStatement();
         }
 
@@ -307,7 +371,8 @@ public class Parser
         while (!CurTokenIs(TokenType.RightBrace) && !CurTokenIs(TokenType.EndOfFile))
         {
             var statement = ParseStatement();
-            if (statement != null) statements.Add(statement);
+            if (statement != null)
+                statements.Add(statement);
             NextToken();
         }
 
@@ -319,11 +384,12 @@ public class Parser
     /// </summary>
     /// <returns>An <see cref="Expression"/> representing the parsed grouped expression, or <see langword="null"/> if the
     /// closing parenthesis is missing.</returns>
-    private Expression ParseGroupedExpression()
+    private Expression? ParseGroupedExpression()
     {
         NextToken();
         var expression = ParseExpression(Precedence.Lowest);
-        if (!ExpectPeek(TokenType.RightParen)) return null;
+        if (!ExpectPeek(TokenType.RightParen))
+            return null;
         return expression;
     }
 
@@ -341,12 +407,20 @@ public class Parser
     /// </summary>
     /// <param name="left">The expression representing the left-hand side of the infix operation. Cannot be null.</param>
     /// <returns>An <see cref="InfixExpression"/> representing the parsed infix expression.</returns>
-    private InfixExpression ParseInfixExpression(Expression left)
+    private InfixExpression? ParseInfixExpression(Expression left)
     {
         var token = _current;
         var precedence = CurPrecedence();
         NextToken();
         var right = ParseExpression(precedence);
+        if (right is null)
+        {
+            _errors.Add(
+                $"Invalid infix expression: expected an expression after '{token.Literal}'."
+            );
+            return null;
+        }
+
         return new InfixExpression(token, left, token.Literal, right);
     }
 
@@ -364,7 +438,8 @@ public class Parser
         while (_current.Type != TokenType.EndOfFile)
         {
             var statement = ParseStatement();
-            if (statement != null) statements.Add(statement);
+            if (statement != null)
+                statements.Add(statement);
             NextToken();
         }
 
@@ -385,7 +460,7 @@ public class Parser
     /// </summary>
     /// <returns>An <see cref="IntegerLiteral"/> representing the parsed integer value if successful; otherwise, <see
     /// langword="null"/> if the current token cannot be parsed as an integer.</returns>
-    private IntegerLiteral ParseIntegerLiteral()
+    private IntegerLiteral? ParseIntegerLiteral()
     {
         if (!long.TryParse(_current.Literal, out var value))
         {
@@ -403,11 +478,19 @@ public class Parser
     /// expression using prefix precedence. It is typically used as part of an expression parsing routine in a
     /// recursive descent parser.</remarks>
     /// <returns>A <see cref="PrefixExpression"/> representing the parsed prefix expression.</returns>
-    private PrefixExpression ParsePrefixExpression()
+    private PrefixExpression? ParsePrefixExpression()
     {
         var token = _current;
         NextToken();
         var right = ParseExpression(Precedence.Prefix);
+        if (right is null)
+        {
+            _errors.Add(
+                $"Invalid prefix expression: expected an expression after '{token.Literal}'."
+            );
+            return null;
+        }
+
         return new PrefixExpression(token, token.Literal, right);
     }
 
@@ -419,13 +502,13 @@ public class Parser
     /// statements.</remarks>
     /// <returns>A <see cref="Statement"/> representing the parsed statement. The specific type of statement returned depends
     /// on the current token.</returns>
-    private Statement ParseStatement()
+    private Statement? ParseStatement()
     {
         return _current.Type switch
         {
             TokenType.Let => ParseLetStatement(),
             TokenType.Return => ParseReturnStatement(),
-            _ => ParseExpressionStatement()
+            _ => ParseExpressionStatement(),
         };
     }
 
@@ -435,11 +518,15 @@ public class Parser
     /// <remarks>An expression statement consists of a single expression optionally followed by a
     /// semicolon. The parser advances past the semicolon if present.</remarks>
     /// <returns>An ExpressionStatement representing the parsed expression and its associated token.</returns>
-    private ExpressionStatement ParseExpressionStatement()
+    private ExpressionStatement? ParseExpressionStatement()
     {
         var token = _current;
         var expression = ParseExpression(Precedence.Lowest);
-        if (PeekTokenIs(TokenType.Semicolon)) NextToken();
+        if (expression is null)
+            return null;
+
+        if (PeekTokenIs(TokenType.Semicolon))
+            NextToken();
         return new ExpressionStatement(token, expression);
     }
 
@@ -453,7 +540,7 @@ public class Parser
     /// resulting expression tree.</param>
     /// <returns>An <see cref="Expression"/> representing the parsed expression, or <see langword="null"/> if no valid prefix
     /// parse function exists for the current token.</returns>
-    private Expression ParseExpression(Precedence precedence)
+    private Expression? ParseExpression(Precedence precedence)
     {
         var prefix = GetPrefixParseFn(_current.Type);
         if (prefix == null)
@@ -463,13 +550,18 @@ public class Parser
         }
 
         var leftExp = prefix();
+        if (leftExp is null)
+            return null;
 
         while (!PeekTokenIs(TokenType.Semicolon) && precedence < PeekPrecedence())
         {
             var infix = GetInfixParseFn(_peek.Type);
-            if (infix == null) return leftExp;
+            if (infix == null)
+                return leftExp;
             NextToken();
             leftExp = infix(leftExp);
+            if (leftExp is null)
+                return null;
         }
 
         return leftExp;
@@ -480,12 +572,19 @@ public class Parser
     /// </summary>
     /// <returns>A <see cref="ReturnStatement"/> representing the parsed return statement, including its return value
     /// expression.</returns>
-    private ReturnStatement ParseReturnStatement()
+    private ReturnStatement? ParseReturnStatement()
     {
         var token = _current;
         NextToken();
         var returnValue = ParseExpression(Precedence.Lowest);
-        if (PeekTokenIs(TokenType.Semicolon)) NextToken();
+        if (returnValue is null)
+        {
+            _errors.Add("Invalid return statement: expected a return value expression.");
+            return null;
+        }
+
+        if (PeekTokenIs(TokenType.Semicolon))
+            NextToken();
         return new ReturnStatement(token, returnValue);
     }
 
@@ -497,17 +596,27 @@ public class Parser
     /// incomplete or malformed, the method returns null.</remarks>
     /// <returns>A LetStatement representing the parsed 'let' statement, or null if the statement is not valid or cannot be
     /// parsed.</returns>
-    private LetStatement ParseLetStatement()
+    private LetStatement? ParseLetStatement()
     {
         var token = _current;
-        if (!ExpectPeek(TokenType.Identifier)) return null;
+        if (!ExpectPeek(TokenType.Identifier))
+            return null;
         var name = new Identifier(_current, _current.Literal);
-        if (!ExpectPeek(TokenType.Assign)) return null;
+        if (!ExpectPeek(TokenType.Assign))
+            return null;
         NextToken();
         var value = ParseExpression(Precedence.Lowest);
-        if (value is FunctionLiteral functionLiteral) functionLiteral.Name = name.Value;
+        if (value is null)
+        {
+            _errors.Add($"Invalid let statement: expected a value expression for '{name.Value}'.");
+            return null;
+        }
 
-        if (PeekTokenIs(TokenType.Semicolon)) NextToken();
+        if (value is FunctionLiteral functionLiteral)
+            functionLiteral.Name = name.Value;
+
+        if (PeekTokenIs(TokenType.Semicolon))
+            NextToken();
 
         return new LetStatement(token, name, value);
     }
