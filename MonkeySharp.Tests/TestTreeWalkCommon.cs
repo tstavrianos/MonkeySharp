@@ -10,10 +10,8 @@ internal static class TestTreeWalkCommon
 {
     internal static Value Eval(string input)
     {
+        var program = TestCommon.Parse(input);
         var env = new SymbolTable();
-        var l = new Lexer(input);
-        var p = new Parser(l);
-        var program = p.ParseProgram();
         return TreeWalker.Eval(program, env);
     }
 
@@ -88,7 +86,7 @@ internal static class TestTreeWalkCommon
         }
 
         var notMatched = new List<Value>();
-        foreach (var (hashKey, pair) in obj.HashPairs)
+        foreach (var (_, pair) in obj.HashPairs)
         {
             var found = false;
             foreach (var (key, value) in dictionary)

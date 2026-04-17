@@ -8,9 +8,7 @@ internal static class TestReflectionEmitCommon
 {
     internal static MonkeyObject Eval(string input)
     {
-        var lexer = new Lexer(input);
-        var parser = new Parser(lexer);
-        var program = parser.ParseProgram();
+        var program = TestCommon.Parse(input);
         var compiler = new ReflectionEmitCompiler();
         var executable = compiler.Compile(program);
         var result = executable();

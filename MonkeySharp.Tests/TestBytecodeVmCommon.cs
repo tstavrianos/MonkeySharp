@@ -139,7 +139,7 @@ internal static class TestBytecodeVmCommon
         }
 
         var notMatched = new List<Value>();
-        foreach (var (hashKey, pair) in obj.HashPairs)
+        foreach (var (_, pair) in obj.HashPairs)
         {
             var found = false;
             foreach (var (key, value) in dictionary)

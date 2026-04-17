@@ -25,6 +25,7 @@ internal class Optimizer
         for (var pass = 0; pass < MaxOptimizationPasses; pass++)
         {
             _scopes.Clear();
+            _mutableVariables.Clear();
             _scopes.Add(new Dictionary<string, Expression>());
 
             var modified = false;
@@ -405,11 +406,7 @@ internal class Optimizer
             {
                 // true -> use consequence (expression context might require further handling outside this optimizer)
                 // return original IfExpression with simplified condition/consequence for safety, but if consequence is a single expression statement, we can return that expression
-                if (
-                    consequence is BlockStatement bs
-                    && bs.Statements.Count == 1
-                    && bs.Statements[0] is ExpressionStatement es
-                )
+                if (consequence is BlockStatement { Statements: [ExpressionStatement es] })
                     return (es.Expression, true);
 
                 // otherwise keep the if with simplified parts
@@ -417,9 +414,8 @@ internal class Optimizer
             else
             {
                 // false -> use alternative if present
-                if (alternative is BlockStatement abs)
-                    if (abs.Statements.Count == 1 && abs.Statements[0] is ExpressionStatement aes)
-                        return (aes.Expression, true);
+                if (alternative is BlockStatement { Statements: [ExpressionStatement aes] })
+                    return (aes.Expression, true);
                 // if no alternative, this if evaluates to null in runtime; keep as-is for safety
             }
         }
@@ -566,16 +562,12 @@ internal class Optimizer
         var varName = letStatement.Name.Value;
 
         // Check if variable was already defined (reassignment)
-        if (_mutableVariables.ContainsKey(varName))
+        if (!_mutableVariables.TryAdd(varName, false))
         {
             _mutableVariables[varName] = true; // Mark as mutated
             // Remove from all scopes since it's no longer constant
             foreach (var scope in _scopes)
                 scope.Remove(varName);
-        }
-        else
-        {
-            _mutableVariables[varName] = false;
         }
 
         // Only propagate if immutable and literal
@@ -586,14 +578,6 @@ internal class Optimizer
         {
             var current = CurrentScope();
             current[varName] = value;
-        }
-
-        // If value is a simple literal, record it in the current scope for propagation
-        if (value is IntegerLiteral or BooleanLiteral or StringLiteral)
-        {
-            var current = CurrentScope();
-            current[letStatement.Name.Value] = value;
-            // Note: adding mapping is considered a modification only if identifier uses will be replaced later
         }
 
         if (value is FunctionLiteral functionLiteral)
@@ -661,10 +645,7 @@ internal class Optimizer
 
             // NEW: Check for if-expression with constant false condition
             if (newStatement is ExpressionStatement { Expression: IfExpression ifExpr })
-                if (
-                    ifExpr.Condition is BooleanLiteral { Value: false }
-                    && ifExpr.Alternative == null
-                )
+                if (ifExpr is { Condition: BooleanLiteral { Value: false }, Alternative: null })
                 {
                     // Skip this statement entirely - it will never execute
                     modified = true;

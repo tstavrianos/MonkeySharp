@@ -21,7 +21,10 @@ internal class SecurityAnalyzer
     private readonly List<string> _warnings = [];
     private readonly Dictionary<string, FunctionInfo> _functions = new();
     private FunctionInfo? _currentFunction;
-    private bool _hasReturnInCurrentPath;
+
+    // Tracks whether the current execution path makes a self-call.
+    // Used per-branch in if expressions to detect implicit base cases.
+    private bool _currentPathCallsItself;
 
     public IReadOnlyList<string> Warnings => _warnings;
 
@@ -35,7 +38,7 @@ internal class SecurityAnalyzer
         _warnings.Clear();
         _functions.Clear();
         _currentFunction = null;
-        _hasReturnInCurrentPath = false;
+        _currentPathCallsItself = false;
 
         // First pass: collect all function definitions
         CollectFunctions(node);
@@ -98,7 +101,6 @@ internal class SecurityAnalyzer
                 break;
 
             case ReturnStatement returnStatement:
-                _hasReturnInCurrentPath = true;
                 AnalyzeNode(returnStatement.ReturnValue);
                 break;
 
@@ -157,11 +159,7 @@ internal class SecurityAnalyzer
         {
             AnalyzeNode(statement);
 
-            // Check for dead code after return
-            if (_hasReturnInCurrentPath && statement != blockStatement.Statements.Last())
-            {
-                // Code after return is unreachable (handled by CodeQualityAnalyzer)
-            }
+            // Dead code after return is handled by CodeQualityAnalyzer
         }
     }
 
@@ -174,53 +172,54 @@ internal class SecurityAnalyzer
     {
         AnalyzeNode(ifExpression.Condition);
 
-        // Track returns in both branches
-        var returnBeforeConsequence = _hasReturnInCurrentPath;
-        _hasReturnInCurrentPath = false;
+        var prevCallsItself = _currentPathCallsItself;
 
+        // Analyze consequence branch
+        _currentPathCallsItself = false;
         AnalyzeNode(ifExpression.Consequence);
-        var consequenceHasReturn = _hasReturnInCurrentPath;
+        var consequenceRecurses = _currentPathCallsItself;
 
-        _hasReturnInCurrentPath = false;
-
+        // Analyze alternative branch (or treat missing else as non-recursive path)
+        _currentPathCallsItself = false;
         if (ifExpression.Alternative != null)
             AnalyzeNode(ifExpression.Alternative);
+        var alternativeRecurses = _currentPathCallsItself;
+        var hasAlternative = ifExpression.Alternative != null;
 
-        var alternativeHasReturn = _hasReturnInCurrentPath;
+        // A branch that does NOT self-call is an implicit base case
+        if (_currentFunction != null)
+        {
+            if (!consequenceRecurses)
+                _currentFunction.HasBaseCase = true;
+            if (hasAlternative && !alternativeRecurses)
+                _currentFunction.HasBaseCase = true;
+            // No else branch means control falls through — also a base case path
+            if (!hasAlternative)
+                _currentFunction.HasBaseCase = true;
+        }
 
-        // If both branches return, the path returns
-        _hasReturnInCurrentPath =
-            returnBeforeConsequence || (consequenceHasReturn && alternativeHasReturn);
-
-        // Check for potential infinite recursion patterns
-        if (ifExpression.Condition is BooleanLiteral { Value: true })
-            // if (true) with recursive call and no return = infinite loop
-            if (!consequenceHasReturn && _currentFunction is { CallsItself: true })
-                AddWarning(
-                    $"Potential infinite loop in function '{_currentFunction.Name}': "
-                        + "unconditional recursive call without guaranteed base case"
-                );
+        // The if expression recurses only when every possible branch recurses
+        _currentPathCallsItself =
+            prevCallsItself
+            || (hasAlternative ? consequenceRecurses && alternativeRecurses : consequenceRecurses);
     }
 
     private void AnalyzeFunctionLiteral(FunctionLiteral functionLiteral)
     {
         var previousFunction = _currentFunction;
-        var previousHasReturn = _hasReturnInCurrentPath;
+        var previousCallsItself = _currentPathCallsItself;
 
         // Find the function info if this is a named function
         if (!string.IsNullOrEmpty(functionLiteral.Name))
             if (_functions.TryGetValue(functionLiteral.Name, out var funcInfo))
                 _currentFunction = funcInfo;
 
-        _hasReturnInCurrentPath = false;
+        _currentPathCallsItself = false;
         AnalyzeNode(functionLiteral.Body);
 
-        // Check if function has any base case (any path that returns without recursion)
+        // Warn about unbounded recursion — HasBaseCase is set incrementally during if-branch analysis
         if (_currentFunction != null)
         {
-            _currentFunction.HasBaseCase = _hasReturnInCurrentPath;
-
-            // Warn about unbounded recursion
             if (_currentFunction.CallsItself && !_currentFunction.HasBaseCase)
                 AddWarning(
                     $"Function '{_currentFunction.Name}' contains recursion but no detectable base case. "
@@ -229,7 +228,7 @@ internal class SecurityAnalyzer
         }
 
         _currentFunction = previousFunction;
-        _hasReturnInCurrentPath = previousHasReturn;
+        _currentPathCallsItself = previousCallsItself;
     }
 
     private void AnalyzeCallExpression(CallExpression callExpression)
@@ -238,7 +237,10 @@ internal class SecurityAnalyzer
         if (callExpression.Function is Identifier identifier && _currentFunction != null)
         {
             if (identifier.Value == _currentFunction.Name)
+            {
                 _currentFunction.CallsItself = true;
+                _currentPathCallsItself = true;
+            }
             else if (_functions.ContainsKey(identifier.Value))
                 _currentFunction.CallsOthers.Add(identifier.Value);
         }

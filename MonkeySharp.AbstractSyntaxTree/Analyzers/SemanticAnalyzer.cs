@@ -177,7 +177,7 @@ internal class SemanticAnalyzer
     private void AnalyzeReturnStatement(ReturnStatement returnStatement)
     {
         if (!_isInFunction)
-            AddError("Return statement outside of function");
+            AddWarning("Return statement outside of function");
 
         AnalyzeNode(returnStatement.ReturnValue);
     }

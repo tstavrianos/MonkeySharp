@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.AbstractSyntaxTree.Analyzers;
 
 namespace MonkeySharp.ReflectionEmit;
 
@@ -45,6 +46,8 @@ public sealed class Session
 
         if (parser.Errors.Count > 0)
             return new CompilationResult(null, parser.Errors);
+
+        program = new Optimizer().Optimize(program);
 
         // Adapt Func<IReadOnlyList<MonkeyValue>, MonkeyValue> -> Func<MonkeyObject[], MonkeyObject>
         // so ILCompiler can build wrapper types for host functions.
@@ -96,5 +99,38 @@ public sealed class Session
         if (value is MonkeyError err)
             return new ExecutionResult(new MonkeyValue(value), err.Message);
         return new ExecutionResult(new MonkeyValue(value), null);
+    }
+
+    /// <summary>
+    /// Parses <paramref name="source"/> and runs static analysis, returning errors and warnings
+    /// without compiling or executing the program.
+    /// </summary>
+    /// <param name="source">Monkey source code to analyze.</param>
+    /// <param name="runSecurity">Whether to include security analysis. Disabled by default due to
+    /// false positives on implicit-return recursive functions.</param>
+    public AnalysisResult Analyze(string? source, bool runSecurity = true)
+    {
+        var lexer = new Lexer(source ?? string.Empty);
+        var parser = new Parser(lexer);
+        var program = parser.ParseProgram();
+
+        if (parser.Errors.Count > 0)
+            return new AnalysisResult(new List<string>(parser.Errors), []);
+
+        var signatures = GetBuiltinSignaturesForAnalysis();
+        var analyzer = new StaticAnalyzer();
+        analyzer.Analyze(program, signatures, runSecurity: runSecurity);
+        return new AnalysisResult(
+            new List<string>(analyzer.AllErrors),
+            new List<string>(analyzer.AllWarnings)
+        );
+    }
+
+    private IEnumerable<(string, int)> GetBuiltinSignaturesForAnalysis()
+    {
+        foreach (var (name, arity) in BuiltinFunctions.Signatures)
+            yield return (name, arity);
+        foreach (var (name, (arity, _)) in _hostFunctions)
+            yield return (name, arity);
     }
 }

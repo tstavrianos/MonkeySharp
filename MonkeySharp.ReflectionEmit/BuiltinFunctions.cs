@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MonkeySharp.ReflectionEmit;
 
@@ -7,6 +8,19 @@ namespace MonkeySharp.ReflectionEmit;
 /// </summary>
 internal static class BuiltinFunctions
 {
+    /// <summary>
+    /// Names and arities of all built-in functions. Variadic functions use arity -1.
+    /// </summary>
+    internal static readonly IReadOnlyList<(string Name, int Arity)> Signatures =
+    [
+        ("len", 1),
+        ("first", 1),
+        ("last", 1),
+        ("rest", 1),
+        ("push", 2),
+        ("puts", -1),
+    ];
+
     /// <summary>
     /// Returns the length of a string or array.
     /// </summary>

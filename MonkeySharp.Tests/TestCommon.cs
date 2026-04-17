@@ -6,7 +6,7 @@ namespace MonkeySharp.Tests;
 
 internal static class TestCommon
 {
-    internal static ProgramNode Parse(string input)
+    internal static ProgramNode Parse(string input, bool optimize = true)
     {
         var l = new Lexer(input);
         var p = new Parser(l);
@@ -16,6 +16,9 @@ internal static class TestCommon
             Assert.Fail(message);
             return null;
         }
+
+        if (optimize)
+            program = new Optimizer().Optimize(program);
 
         return program;
     }

@@ -300,7 +300,7 @@ return 1;
         "unusable as hash key: FUNCTION",
         "unusable as hash key: CLOSURE"
     )]
-    public void SharedErrorTest(string input, string expected1, string? expected2)
+    public void SharedErrorTest(string input, string expected1, string expected2)
     {
         var reflectionEmitEvaluated = TestReflectionEmitCommon.Eval(input);
         if (reflectionEmitEvaluated is not MonkeyError error)
@@ -352,7 +352,7 @@ return 1;
         Assert.Pass();
     }
 
-    private static bool MatchesExpectedError(string actual, string expected1, string? expected2)
+    private static bool MatchesExpectedError(string actual, string expected1, string expected2)
     {
         if (actual == expected1)
             return true;

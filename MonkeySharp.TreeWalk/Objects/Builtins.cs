@@ -115,6 +115,8 @@ internal static class Builtins
         ),
     ];
 
+    internal static IReadOnlyList<(string name, int arity, Value builtin)> Entries => Data;
+
     internal static bool TryGet(string name, out Value value)
     {
         foreach (var (n, _, builtin) in Data)

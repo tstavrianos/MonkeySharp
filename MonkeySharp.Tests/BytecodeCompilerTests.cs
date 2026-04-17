@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using MonkeySharp.AbstractSyntaxTree;
 using MonkeySharp.BytecodeVm;
 using MonkeySharp.BytecodeVm.Objects;
 using NUnit.Framework;
@@ -733,7 +734,7 @@ public class BytecodeCompilerTests
         byte[][] expectedInstructions
     )
     {
-        var program = TestCommon.Parse(input);
+        var program = TestCommon.Parse(input, false);
         var compiler = new BytecodeCompiler();
         var err = compiler.Compile(program);
         if (!string.IsNullOrEmpty(err))

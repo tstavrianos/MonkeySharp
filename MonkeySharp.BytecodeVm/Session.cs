@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MonkeySharp.AbstractSyntaxTree;
+using MonkeySharp.AbstractSyntaxTree.Analyzers;
 using MonkeySharp.BytecodeVm.Objects;
 
 namespace MonkeySharp.BytecodeVm;
@@ -37,6 +38,8 @@ public sealed class Session
 
         if (parser.Errors.Count > 0)
             return new CompilationResult(null, new List<string>(parser.Errors), []);
+
+        program = new Optimizer().Optimize(program);
 
         var builtinSignatures = GetBuiltinSignatures();
         var builtinNames = new List<string>(builtinSignatures.Count);
@@ -82,6 +85,31 @@ public sealed class Session
     internal BytecodeCompiler CreateCompiler()
     {
         return new BytecodeCompiler(GetBuiltinSignatures());
+    }
+
+    /// <summary>
+    /// Parses <paramref name="source"/> and runs static analysis, returning errors and warnings
+    /// without compiling or executing the program.
+    /// </summary>
+    /// <param name="source">Monkey source code to analyze.</param>
+    /// <param name="runSecurity">Whether to include security analysis. Disabled by default due to
+    /// false positives on implicit-return recursive functions.</param>
+    public AnalysisResult Analyze(string? source, bool runSecurity = true)
+    {
+        var lexer = new Lexer(source ?? string.Empty);
+        var parser = new Parser(lexer);
+        var program = parser.ParseProgram();
+
+        if (parser.Errors.Count > 0)
+            return new AnalysisResult(new List<string>(parser.Errors), []);
+
+        var signatures = GetBuiltinSignatures().Select(x => (x.name, x.arity));
+        var analyzer = new StaticAnalyzer();
+        analyzer.Analyze(program, signatures, runSecurity: runSecurity);
+        return new AnalysisResult(
+            new List<string>(analyzer.AllErrors),
+            new List<string>(analyzer.AllWarnings)
+        );
     }
 
     internal IReadOnlyList<(string name, int arity)> GetBuiltinSignatures()
