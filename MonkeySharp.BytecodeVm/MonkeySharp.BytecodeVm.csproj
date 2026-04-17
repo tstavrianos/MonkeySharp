@@ -5,6 +5,8 @@
 		<IsAotCompatible>true</IsAotCompatible>
 		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<RootNamespace>MonkeySharp.BytecodeVm</RootNamespace>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<IsPackable>true</IsPackable>
 	</PropertyGroup>
 
 	<ItemGroup>

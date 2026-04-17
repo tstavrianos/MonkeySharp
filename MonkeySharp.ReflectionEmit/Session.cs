@@ -106,8 +106,8 @@ public sealed class Session
     /// without compiling or executing the program.
     /// </summary>
     /// <param name="source">Monkey source code to analyze.</param>
-    /// <param name="runSecurity">Whether to include security analysis. Disabled by default due to
-    /// false positives on implicit-return recursive functions.</param>
+    /// <param name="runSecurity"><see langword="true"/> to include security analysis; otherwise, <see langword="false"/>.</param>
+    /// <returns>An analysis result containing errors and warnings.</returns>
     public AnalysisResult Analyze(string? source, bool runSecurity = true)
     {
         var lexer = new Lexer(source ?? string.Empty);
