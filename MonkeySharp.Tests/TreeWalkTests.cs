@@ -3,7 +3,7 @@
 namespace MonkeySharp.Tests;
 
 [TestFixture]
-public class TreeWalkerTests
+public class TreeWalkTests
 {
     private static readonly object[] TestEvalExpressionCases =
     [
