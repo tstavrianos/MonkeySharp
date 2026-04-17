@@ -4,9 +4,9 @@ public sealed class ILExecutionResult
 {
     public bool Success => Error == null;
     public string? Error { get; }
-    public MonkeyObject? Value { get; }
+    public MonkeyValue Value { get; }
 
-    internal ILExecutionResult(MonkeyObject? value, string? error)
+    internal ILExecutionResult(MonkeyValue value, string? error)
     {
         Value = value;
         Error = error;

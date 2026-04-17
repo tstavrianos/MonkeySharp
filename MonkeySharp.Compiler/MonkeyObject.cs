@@ -6,7 +6,7 @@ namespace MonkeySharp.Compiler;
 /// <summary>
 /// Base class for all runtime values in the MonkeySharp language.
 /// </summary>
-public abstract class MonkeyObject
+internal abstract class MonkeyObject
 {
     /// <summary>
     /// Returns a string representation of this object.
@@ -19,7 +19,7 @@ public abstract class MonkeyObject
     public abstract string TypeName();
 }
 
-public interface IHashable
+internal interface IHashable
 {
     /// <summary>
     /// Gets the hash code for this object, used as a key in a hash table.
@@ -32,7 +32,7 @@ public interface IHashable
 /// <summary>
 /// Represents a 64-bit integer value.
 /// </summary>
-public sealed class MonkeyInteger : MonkeyObject, IHashable
+internal sealed class MonkeyInteger : MonkeyObject, IHashable
 {
     public long Value { get; }
 
@@ -67,7 +67,7 @@ public sealed class MonkeyInteger : MonkeyObject, IHashable
 /// <summary>
 /// Represents a string value.
 /// </summary>
-public sealed class MonkeyString : MonkeyObject, IHashable
+internal sealed class MonkeyString : MonkeyObject, IHashable
 {
     public string Value { get; }
 
@@ -102,7 +102,7 @@ public sealed class MonkeyString : MonkeyObject, IHashable
 /// <summary>
 /// Represents a boolean value.
 /// </summary>
-public sealed class MonkeyBoolean : MonkeyObject, IHashable
+internal sealed class MonkeyBoolean : MonkeyObject, IHashable
 {
     public bool Value { get; }
 
@@ -145,7 +145,7 @@ public sealed class MonkeyBoolean : MonkeyObject, IHashable
 /// <summary>
 /// Represents a null value.
 /// </summary>
-public sealed class MonkeyNull : MonkeyObject
+internal sealed class MonkeyNull : MonkeyObject
 {
     private MonkeyNull() { }
 
@@ -165,7 +165,7 @@ public sealed class MonkeyNull : MonkeyObject
 /// <summary>
 /// Represents an array of MonkeySharp objects.
 /// </summary>
-public sealed class MonkeyArray : MonkeyObject
+internal sealed class MonkeyArray : MonkeyObject
 {
     public MonkeyObject[] Elements { get; }
 
@@ -189,7 +189,7 @@ public sealed class MonkeyArray : MonkeyObject
 /// <summary>
 /// Represents a hash table (dictionary) of MonkeySharp objects.
 /// </summary>
-public sealed class MonkeyHash : MonkeyObject
+internal sealed class MonkeyHash : MonkeyObject
 {
     public Dictionary<MonkeyObject, MonkeyObject> Pairs { get; }
 
@@ -253,7 +253,7 @@ internal sealed class MonkeyFunction : MonkeyObject
     }
 }
 
-public sealed class MonkeyError : MonkeyObject
+internal sealed class MonkeyError : MonkeyObject
 {
     public string Message { get; }
 

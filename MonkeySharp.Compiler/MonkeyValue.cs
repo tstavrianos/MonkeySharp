@@ -1,9 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using MonkeySharp.Interpreter.Objects;
 
-namespace MonkeySharp.Interpreter;
+namespace MonkeySharp.Compiler;
 
 public enum MonkeyValueKind
 {
@@ -18,63 +17,62 @@ public enum MonkeyValueKind
 
 public readonly struct MonkeyValue : IEquatable<MonkeyValue>
 {
-    private readonly Value _value;
-    private readonly bool _hasValue;
+    private readonly MonkeyObject _value;
 
-    // default(MonkeyValue) should behave as NULL at the public boundary.
-    private Value RuntimeValue
+    // default(MonkeyValue) has a null backing field; treat it as NULL for parity/safety.
+    private MonkeyObject RuntimeValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _hasValue ? _value : Value.NullValue;
+        get => _value ?? MonkeyNull.Instance;
     }
 
     public MonkeyValueKind Kind
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get =>
-            RuntimeValue.IsInteger ? MonkeyValueKind.Integer
-            : RuntimeValue.IsString ? MonkeyValueKind.String
-            : RuntimeValue.IsBoolean ? MonkeyValueKind.Boolean
-            : RuntimeValue.IsNull ? MonkeyValueKind.Null
-            : RuntimeValue.IsArray ? MonkeyValueKind.Array
-            : RuntimeValue.IsHash ? MonkeyValueKind.Hash
+            RuntimeValue is MonkeyInteger ? MonkeyValueKind.Integer
+            : RuntimeValue is MonkeyString ? MonkeyValueKind.String
+            : RuntimeValue is MonkeyBoolean ? MonkeyValueKind.Boolean
+            : RuntimeValue is MonkeyNull ? MonkeyValueKind.Null
+            : RuntimeValue is MonkeyArray ? MonkeyValueKind.Array
+            : RuntimeValue is MonkeyHash ? MonkeyValueKind.Hash
             : MonkeyValueKind.Error;
     }
 
     public long? IntegerValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeValue.IsInteger ? RuntimeValue.IntValue : null;
+        get => RuntimeValue is MonkeyInteger i ? i.Value : null;
     }
 
     public string? StringValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeValue.IsString ? RuntimeValue.StringValue : null;
+        get => RuntimeValue is MonkeyString s ? s.Value : null;
     }
 
     public bool? BooleanValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeValue.IsBoolean ? RuntimeValue.BooleanValue : null;
+        get => RuntimeValue is MonkeyBoolean b ? b.Value : null;
     }
 
     public string? ErrorMessage
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeValue.IsError ? RuntimeValue.ErrorMessage : null;
+        get => RuntimeValue is MonkeyError e ? e.Message : null;
     }
 
     public IReadOnlyList<MonkeyValue>? ArrayElements
     {
         get
         {
-            if (!RuntimeValue.IsArray)
+            if (RuntimeValue is not MonkeyArray a)
                 return null;
 
-            var elements = RuntimeValue.ArrayElements!;
-            var ret = new MonkeyValue[elements.Count];
-            for (var i = 0; i < elements.Count; i++)
+            var elements = a.Elements;
+            var ret = new MonkeyValue[elements.Length];
+            for (var i = 0; i < elements.Length; i++)
                 ret[i] = new MonkeyValue(elements[i]);
 
             return ret;
@@ -85,12 +83,12 @@ public readonly struct MonkeyValue : IEquatable<MonkeyValue>
     {
         get
         {
-            if (!RuntimeValue.IsHash)
+            if (RuntimeValue is not MonkeyHash h)
                 return null;
 
             var ret = new Dictionary<MonkeyValue, MonkeyValue>();
-            foreach (var (_, pair) in RuntimeValue.HashPairs!)
-                ret[new MonkeyValue(pair.Key)] = new MonkeyValue(pair.Value);
+            foreach (var (key, value) in h.Pairs)
+                ret[new MonkeyValue(key)] = new MonkeyValue(value);
 
             return ret;
         }
@@ -99,71 +97,70 @@ public readonly struct MonkeyValue : IEquatable<MonkeyValue>
     public string Inspect
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => RuntimeValue.Inspect;
+        get => RuntimeValue.Inspect();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MonkeyValue Integer(long value)
     {
-        return new MonkeyValue(Value.Integer(value));
+        return new MonkeyValue(new MonkeyInteger(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MonkeyValue String(string value)
     {
-        return new MonkeyValue(Value.String(value));
+        return new MonkeyValue(new MonkeyString(value));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MonkeyValue Boolean(bool value)
     {
-        return new MonkeyValue(value ? Value.True : Value.False);
+        return new MonkeyValue(value ? MonkeyBoolean.True : MonkeyBoolean.False);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MonkeyValue Null()
     {
-        return new MonkeyValue(Value.NullValue);
+        return new MonkeyValue(MonkeyNull.Instance);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static MonkeyValue Error(string message)
     {
-        return new MonkeyValue(Value.Error(message));
+        return new MonkeyValue(new MonkeyError(message));
     }
 
     public static MonkeyValue Array(IReadOnlyList<MonkeyValue> elements)
     {
-        var ret = new Value[elements.Count];
+        var ret = new MonkeyObject[elements.Count];
         for (var i = 0; i < elements.Count; i++)
             ret[i] = elements[i].ToInternal();
 
-        return new MonkeyValue(Value.Array(ret));
+        return new MonkeyValue(new MonkeyArray(ret));
     }
 
     public static MonkeyValue Hash(IReadOnlyDictionary<MonkeyValue, MonkeyValue> pairs)
     {
-        var ret = new Dictionary<HashKey, (Value Key, Value Value)>();
+        var ret = new Dictionary<MonkeyObject, MonkeyObject>();
         foreach (var (key, value) in pairs)
         {
             var runtimeKey = key.ToInternal();
-            if (!runtimeKey.IsHashable)
-                return Error($"unusable as hash key in host value: {runtimeKey.Type}");
+            if (runtimeKey is not IHashable)
+                return Error($"unusable as hash key in host value: {runtimeKey.TypeName()}");
 
-            ret[runtimeKey.GetHashKey()] = (runtimeKey, value.ToInternal());
+            ret[runtimeKey] = value.ToInternal();
         }
 
-        return new MonkeyValue(Value.Hash(ret));
+        return new MonkeyValue(new MonkeyHash(ret));
     }
 
-    internal MonkeyValue(Value value)
+    internal MonkeyValue(MonkeyObject value)
     {
         _value = value;
-        _hasValue = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal Value ToInternal()
+    internal MonkeyObject ToInternal()
     {
         return RuntimeValue;
     }

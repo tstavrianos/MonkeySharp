@@ -100,8 +100,8 @@ fibonacci(20);";
         var result = _ilCompilerSession.Run(_ilCompiled);
         if (!result.Success)
             return long.MinValue;
-        if (result.Value is not MonkeyInteger integer)
+        if (result.Value.Kind != Compiler.MonkeyValueKind.Integer)
             return long.MinValue;
-        return integer.Value;
+        return result.Value.IntegerValue!.Value;
     }
 }

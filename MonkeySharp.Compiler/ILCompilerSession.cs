@@ -13,7 +13,7 @@ public sealed class ILCompilerSession
 {
     private readonly Dictionary<
         string,
-        (int arity, Func<IReadOnlyList<MonkeyObject>, MonkeyObject> fn)
+        (int arity, Func<IReadOnlyList<MonkeyValue>, MonkeyValue> fn)
     > _hostFunctions = new();
 
     /// <summary>
@@ -25,7 +25,7 @@ public sealed class ILCompilerSession
     public void RegisterFunction(
         string name,
         int arity,
-        Func<IReadOnlyList<MonkeyObject>, MonkeyObject> function
+        Func<IReadOnlyList<MonkeyValue>, MonkeyValue> function
     )
     {
         ArgumentNullException.ThrowIfNull(function);
@@ -46,14 +46,26 @@ public sealed class ILCompilerSession
         if (parser.Errors.Count > 0)
             return new ILCompilationResult(null, parser.Errors);
 
-        // Adapt Func<IReadOnlyList<MonkeyObject>, MonkeyObject> -> Func<MonkeyObject[], MonkeyObject>
+        // Adapt Func<IReadOnlyList<MonkeyValue>, MonkeyValue> -> Func<MonkeyObject[], MonkeyObject>
         // so ILCompiler can build wrapper types for host functions.
         var adapters = _hostFunctions.ToDictionary(
             kvp => kvp.Key,
             kvp =>
             {
                 var (a, fn) = kvp.Value;
-                return (a, (Func<MonkeyObject[], MonkeyObject>)(args => fn(args)));
+                return (
+                    a,
+                    (Func<MonkeyObject[], MonkeyObject>)(
+                        args =>
+                        {
+                            var publicArgs = new MonkeyValue[args.Length];
+                            for (var i = 0; i < args.Length; i++)
+                                publicArgs[i] = new MonkeyValue(args[i]);
+
+                            return fn(publicArgs).ToInternal();
+                        }
+                    )
+                );
             }
         );
 
@@ -74,12 +86,12 @@ public sealed class ILCompilerSession
                 result.Diagnostics.Count > 0
                     ? result.Diagnostics[0]
                     : "Cannot run an invalid compilation result.";
-            return new ILExecutionResult(new MonkeyError(msg), msg);
+            return new ILExecutionResult(MonkeyValue.Error(msg), msg);
         }
 
         var value = result.GetCompiledFunction()!();
         if (value is MonkeyError err)
-            return new ILExecutionResult(value, err.Message);
-        return new ILExecutionResult(value, null);
+            return new ILExecutionResult(new MonkeyValue(value), err.Message);
+        return new ILExecutionResult(new MonkeyValue(value), null);
     }
 }

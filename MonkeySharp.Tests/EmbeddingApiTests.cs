@@ -3,6 +3,8 @@ using MonkeySharp.Compiler;
 using MonkeySharp.Interpreter;
 using MonkeySharp.VirtualMachine;
 using NUnit.Framework;
+using IlKind = MonkeySharp.Compiler.MonkeyValueKind;
+using IlValue = MonkeySharp.Compiler.MonkeyValue;
 using InterpreterKind = MonkeySharp.Interpreter.MonkeyValueKind;
 using InterpreterValue = MonkeySharp.Interpreter.MonkeyValue;
 using VmKind = MonkeySharp.VirtualMachine.MonkeyValueKind;
@@ -113,9 +115,7 @@ public class EmbeddingApiTests
         session.RegisterFunction(
             "hostAdd",
             2,
-            args => new MonkeyInteger(
-                ((MonkeyInteger)args[0]).Value + ((MonkeyInteger)args[1]).Value
-            )
+            args => IlValue.Integer(args[0].IntegerValue!.Value + args[1].IntegerValue!.Value)
         );
 
         var result = session.Compile("hostAdd(1, 2);");
@@ -123,8 +123,8 @@ public class EmbeddingApiTests
 
         var runResult = session.Run(result);
         Assert.That(runResult.Success, Is.True, runResult.Error);
-        Assert.That(runResult.Value, Is.InstanceOf<MonkeyInteger>());
-        Assert.That(((MonkeyInteger)runResult.Value).Value, Is.EqualTo(3));
+        Assert.That(runResult.Value.Kind, Is.EqualTo(IlKind.Integer));
+        Assert.That(runResult.Value.IntegerValue, Is.EqualTo(3));
     }
 
     [Test]
@@ -138,20 +138,25 @@ public class EmbeddingApiTests
 
         var runResult = session.Run(result);
         Assert.That(runResult.Success, Is.True, runResult.Error);
-        Assert.That(runResult.Value, Is.InstanceOf<MonkeyHash>());
+        Assert.That(runResult.Value.Kind, Is.EqualTo(IlKind.Hash));
 
-        var hash = ((MonkeyHash)runResult.Value).Pairs;
-        var numsKey = new MonkeyString("nums");
+        var hash = runResult.Value.HashPairs;
+        Assert.That(hash, Is.Not.Null);
+
+        var numsKey = IlValue.String("nums");
         Assert.That(hash.ContainsKey(numsKey), Is.True);
-        var nums = (MonkeyArray)hash[numsKey];
-        Assert.That(nums.Elements.Length, Is.EqualTo(3));
-        Assert.That(((MonkeyInteger)nums.Elements[0]).Value, Is.EqualTo(1));
-        Assert.That(((MonkeyInteger)nums.Elements[1]).Value, Is.EqualTo(2));
-        Assert.That(((MonkeyInteger)nums.Elements[2]).Value, Is.EqualTo(3));
+        var nums = hash[numsKey];
+        Assert.That(nums.Kind, Is.EqualTo(IlKind.Array));
+        Assert.That(nums.ArrayElements, Is.Not.Null);
+        Assert.That(nums.ArrayElements!.Count, Is.EqualTo(3));
+        Assert.That(nums.ArrayElements[0].IntegerValue, Is.EqualTo(1));
+        Assert.That(nums.ArrayElements[1].IntegerValue, Is.EqualTo(2));
+        Assert.That(nums.ArrayElements[2].IntegerValue, Is.EqualTo(3));
 
-        var okKey = new MonkeyString("ok");
+        var okKey = IlValue.String("ok");
         Assert.That(hash.ContainsKey(okKey), Is.True);
-        Assert.That(((MonkeyBoolean)hash[okKey]).Value, Is.True);
+        Assert.That(hash[okKey].Kind, Is.EqualTo(IlKind.Boolean));
+        Assert.That(hash[okKey].BooleanValue, Is.True);
     }
 
     [Test]
