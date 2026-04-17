@@ -34,7 +34,7 @@ internal static class TestReflectionEmitCommon
                 return TestStringValue(obj, s, out errorMessage);
             case object[] o:
                 return TestArrayValue(obj, o, out errorMessage);
-            case IReadOnlyDictionary<MonkeyObject, object> d:
+            case IReadOnlyDictionary<object, object> d:
                 return TestHashValue(obj, d, out errorMessage);
             default:
                 errorMessage = $"type of object not handled. got={expected.GetType().Name}";
@@ -56,7 +56,7 @@ internal static class TestReflectionEmitCommon
 
     private static bool TestHashValue(
         MonkeyObject obj,
-        IReadOnlyDictionary<MonkeyObject, object> dictionary,
+        IReadOnlyDictionary<object, object> dictionary,
         out string errorMessage
     )
     {
@@ -74,9 +74,29 @@ internal static class TestReflectionEmitCommon
             return false;
         }
 
-        foreach (var (key, value) in dictionary)
+        var notMatched = new List<MonkeyObject>();
+        foreach (var (hKey, hValue) in hash.Pairs)
+        {
+            var found = false;
+            foreach (var (key, value) in dictionary)
+                if (TestValue(hKey, key, out _) && TestValue(hValue, value, out _))
+                {
+                    found = true;
+                    break;
+                }
+
+            if (!found)
+                notMatched.Add(hKey);
+        }
+
+        if (notMatched.Count > 0)
+        {
+            errorMessage = $"Not matched keys: {string.Join(',', notMatched)}";
+            return false;
+        }
+        /*foreach (var (key, value) in dictionary)
             if (!TestValue(hash.Pairs[key], value, out errorMessage))
-                return false;
+                return false;*/
 
         return true;
     }

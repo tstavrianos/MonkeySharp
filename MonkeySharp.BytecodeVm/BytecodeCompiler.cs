@@ -253,7 +253,7 @@ internal sealed class BytecodeCompiler
             case Identifier identifier:
             {
                 if (!_symbolTable.Resolve(identifier.Value, out var symbol))
-                    return $"undefined variable {identifier.Value}";
+                    return $"identifier not found: {identifier.Value}";
                 LoadSymbol(symbol);
                 break;
             }

@@ -7,6 +7,20 @@ namespace MonkeySharp.Tests;
 
 internal static class TestBytecodeVmCommon
 {
+    internal static Value Eval(string input)
+    {
+        var program = TestCommon.Parse(input);
+        var comp = new BytecodeCompiler();
+        var compileError = comp.Compile(program);
+        if (!string.IsNullOrEmpty(compileError))
+            return Value.Error(compileError);
+        var vm = new Vm(comp.ByteCode());
+        var err = vm.Run();
+        if (!string.IsNullOrEmpty(err))
+            return Value.Error(err);
+        return vm.LastPoppedStackElement;
+    }
+
     internal static bool TestInstructions(
         byte[][] expected,
         IReadOnlyList<byte> actual,
@@ -64,7 +78,7 @@ internal static class TestBytecodeVmCommon
                 return TestCompiledFunctionValue(obj, instructions, out errorMessage);
             case object[] o:
                 return TestArrayValue(obj, o, out errorMessage);
-            case IReadOnlyDictionary<HashKey, object> d:
+            case IReadOnlyDictionary<object, object> d:
                 return TestHashValue(obj, d, out errorMessage);
             default:
                 errorMessage = $"type of object not handled. got={expected.GetType().Name}";
@@ -106,7 +120,7 @@ internal static class TestBytecodeVmCommon
 
     private static bool TestHashValue(
         Value obj,
-        IReadOnlyDictionary<HashKey, object> dictionary,
+        IReadOnlyDictionary<object, object> dictionary,
         out string errorMessage
     )
     {
@@ -124,9 +138,30 @@ internal static class TestBytecodeVmCommon
             return false;
         }
 
-        foreach (var (key, value) in dictionary)
+        var notMatched = new List<Value>();
+        foreach (var (hashKey, pair) in obj.HashPairs)
+        {
+            var found = false;
+            foreach (var (key, value) in dictionary)
+                if (TestValue(pair.Key, key, out _) && TestValue(pair.Value, value, out _))
+                {
+                    found = true;
+                    break;
+                }
+
+            if (!found)
+                notMatched.Add(pair.Key);
+        }
+
+        if (notMatched.Count > 0)
+        {
+            errorMessage = $"Not matched keys: {string.Join(',', notMatched)}";
+            return false;
+        }
+
+        /*foreach (var (key, value) in dictionary)
             if (!TestValue(obj.HashPairs[key].Value, value, out errorMessage))
-                return false;
+                return false;*/
 
         return true;
     }

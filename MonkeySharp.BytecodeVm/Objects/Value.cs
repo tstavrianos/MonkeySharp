@@ -414,10 +414,33 @@ internal readonly struct Value : IEquatable<Value>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string OpCodeToString(OpCode opCode)
+    {
+        switch (opCode)
+        {
+            case OpCode.Add:
+                return "+";
+            case OpCode.Subtract:
+                return "-";
+            case OpCode.Divide:
+                return "/";
+            case OpCode.Multiply:
+                return "*";
+            case OpCode.Minus:
+                return "-";
+            case OpCode.Bang:
+                return "!";
+        }
+
+        return opCode.ToString();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Value InfixOperation(Value left, OpCode op, Value right)
     {
         if (left._kind != right._kind)
-            return Error($"unknown operator: {left.Type} {op} {right.Type}");
+            return Error($"unknown operator: {left.Type} {OpCodeToString(op)} {right.Type}");
+
         if (op == OpCode.Equal)
             return left == right ? True : False;
         if (op == OpCode.NotEqual)
@@ -430,13 +453,13 @@ internal readonly struct Value : IEquatable<Value>
                 OpCode.Multiply => Integer(left.IntValue * right.IntValue),
                 OpCode.Divide => Integer(left.IntValue / right.IntValue),
                 OpCode.GreaterThan => left.IntValue > right.IntValue ? True : False,
-                _ => Error($"unknown operator: {left.Type} {op} {right.Type}"),
+                _ => Error($"unknown operator: {left.Type} {OpCodeToString(op)} {right.Type}"),
             };
 
         if (left.IsString && right.IsString && op == OpCode.Add)
             return String(left.StringValue + right.StringValue);
 
-        return Error($"unknown operator: {left.Type} {op} {right.Type}");
+        return Error($"unknown operator: {left.Type} {OpCodeToString(op)} {right.Type}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -453,6 +476,6 @@ internal readonly struct Value : IEquatable<Value>
 
         if (op == OpCode.Minus && right.IsInteger)
             return Integer(-right.IntValue);
-        return Error($"unknown operator: {op}{right.Type}");
+        return Error($"unknown operator: {OpCodeToString(op)}{right.Type}");
     }
 }

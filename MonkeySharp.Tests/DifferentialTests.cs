@@ -6,9 +6,9 @@ using NUnit.Framework;
 namespace MonkeySharp.Tests;
 
 [TestFixture]
-public class ReflectionEmitTests
+public class DifferentialTests
 {
-    private static readonly object[] TestEvalExpressionCases =
+    private static readonly object[] SharedTestCases =
     [
         new object[] { "1", 1 },
         new object[] { "2", 2 },
@@ -234,13 +234,33 @@ public class ReflectionEmitTests
     ];
 
     [Test]
-    [TestCaseSource(nameof(TestEvalExpressionCases))]
-    public void TestEvalExpressionIL(string input, object expected)
+    [TestCaseSource(nameof(SharedTestCases))]
+    public void SharedSuccessfulTest(string input, object expected)
     {
-        var evaluated = TestReflectionEmitCommon.Eval(input);
-        if (!TestReflectionEmitCommon.TestValue(evaluated, expected, out var errorMessage))
+        var reflectionEmitEvaluated = TestReflectionEmitCommon.Eval(input);
+        if (
+            !TestReflectionEmitCommon.TestValue(
+                reflectionEmitEvaluated,
+                expected,
+                out var errorMessage
+            )
+        )
         {
-            Assert.Fail(errorMessage);
+            Assert.Fail($"ReflectionEmit: {errorMessage}");
+            return;
+        }
+
+        var bytecodeVmEvaluated = TestBytecodeVmCommon.Eval(input);
+        if (!TestBytecodeVmCommon.TestValue(bytecodeVmEvaluated, expected, out errorMessage))
+        {
+            Assert.Fail($"BytecodeVM: {errorMessage}");
+            return;
+        }
+
+        var treeWalkEvaluated = TestTreeWalkCommon.Eval(input);
+        if (!TestTreeWalkCommon.TestValue(treeWalkEvaluated, expected, out errorMessage))
+        {
+            Assert.Fail($"TreeWalk: {errorMessage}");
             return;
         }
 
@@ -248,12 +268,20 @@ public class ReflectionEmitTests
     }
 
     [Test]
-    [TestCase("5 + true;", "unknown operator: INTEGER + BOOLEAN")]
-    [TestCase("5 + true; 5;", "unknown operator: INTEGER + BOOLEAN")]
-    [TestCase("-true", "unknown operator: -BOOLEAN")]
-    [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN")]
-    [TestCase("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN")]
+    [TestCase("fn() { 1; }(1)", "wrong number of arguments. want=0, got=1", null)]
+    [TestCase("fn(a) { a; }()", "wrong number of arguments. want=1, got=0", null)]
+    [TestCase("fn(a, b) { a + b; }(1)", "wrong number of arguments. want=2, got=1", null)]
+    [TestCase("len(1)", "argument to 'len' not supported, got INTEGER", null)]
+    [TestCase("len(\"one\", \"two\")", "wrong number of arguments. want=1, got=2", null)]
+    [TestCase("first(1)", "argument to 'first' must be ARRAY, got INTEGER", null)]
+    [TestCase("last(1)", "argument to 'last' must be ARRAY, got INTEGER", null)]
+    [TestCase("push(1, 1)", "argument to 'push' must be ARRAY, got INTEGER", null)]
+    [TestCase("5 + true;", "unknown operator: INTEGER + BOOLEAN", null)]
+    [TestCase("5 + true; 5;", "unknown operator: INTEGER + BOOLEAN", null)]
+    [TestCase("-true", "unknown operator: -BOOLEAN", null)]
+    [TestCase("true + false;", "unknown operator: BOOLEAN + BOOLEAN", null)]
+    [TestCase("5; true + false; 5", "unknown operator: BOOLEAN + BOOLEAN", null)]
+    [TestCase("if (10 > 1) { true + false; }", "unknown operator: BOOLEAN + BOOLEAN", null)]
     [TestCase(
         @"if (10 > 1) {
 if (10 > 1) {
@@ -261,29 +289,74 @@ return true + false;
 }
 return 1;
 }",
-        "unknown operator: BOOLEAN + BOOLEAN"
+        "unknown operator: BOOLEAN + BOOLEAN",
+        null
     )]
-    [TestCase("foobar", "identifier not found: foobar")]
-    [TestCase("\"foo\" - \"bar\"", "unknown operator: STRING - STRING")]
-    [TestCase("len(1)", "argument to 'len' not supported, got INTEGER")]
-    [TestCase("len(\"one\", \"two\")", "wrong number of arguments. want=1, got=2")]
-    [TestCase("999[1]", "index operator not supported: INTEGER")]
-    [TestCase("{\"name\": \"Monkey\"}[fn(x) { x }];", "unusable as hash key: FUNCTION")]
-    public void TestILErrorHandling(string input, string expected)
+    [TestCase("foobar", "identifier not found: foobar", null)]
+    [TestCase("\"foo\" - \"bar\"", "unknown operator: STRING - STRING", null)]
+    [TestCase("999[1]", "index operator not supported: INTEGER", null)]
+    [TestCase(
+        "{\"name\": \"Monkey\"}[fn(x) { x }];",
+        "unusable as hash key: FUNCTION",
+        "unusable as hash key: CLOSURE"
+    )]
+    public void SharedErrorTest(string input, string expected1, string? expected2)
     {
-        var evaluated = TestReflectionEmitCommon.Eval(input);
-        if (evaluated is not MonkeyError error)
+        var reflectionEmitEvaluated = TestReflectionEmitCommon.Eval(input);
+        if (reflectionEmitEvaluated is not MonkeyError error)
         {
-            Assert.Fail($"no error object returned. got={evaluated.TypeName()}");
+            Assert.Fail(
+                $"ReflectionEmit: no error object returned. got={reflectionEmitEvaluated.GetType()}"
+            );
             return;
         }
 
-        if (error.Message != expected)
+        if (!MatchesExpectedError(error.Message, expected1, expected2))
         {
-            Assert.Fail($"wrong error message. expected={expected}, got={error.Message}");
+            Assert.Fail(
+                $"ReflectionEmit: wrong error message. expected={expected1}, got={error.Message}"
+            );
+            return;
+        }
+
+        var bytecodeVmEvaluated = TestBytecodeVmCommon.Eval(input);
+        if (!bytecodeVmEvaluated.IsError)
+        {
+            Assert.Fail($"BytecodeVM: no error object returned. got={bytecodeVmEvaluated.Type}");
+            return;
+        }
+
+        if (!MatchesExpectedError(bytecodeVmEvaluated.ErrorMessage!, expected1, expected2))
+        {
+            Assert.Fail(
+                $"BytecodeVM: wrong error message. expected={expected1}, got={bytecodeVmEvaluated.ErrorMessage}"
+            );
+            return;
+        }
+
+        var treeWalkEvaluated = TestTreeWalkCommon.Eval(input);
+        if (!treeWalkEvaluated.IsError)
+        {
+            Assert.Fail($"TreeWalk: no error object returned. got={treeWalkEvaluated.Type}");
+            return;
+        }
+
+        if (!MatchesExpectedError(treeWalkEvaluated.ErrorMessage!, expected1, expected2))
+        {
+            Assert.Fail(
+                $"TreeWalk: wrong error message. expected={expected1}, got={treeWalkEvaluated.ErrorMessage}"
+            );
             return;
         }
 
         Assert.Pass();
+    }
+
+    private static bool MatchesExpectedError(string actual, string expected1, string? expected2)
+    {
+        if (actual == expected1)
+            return true;
+
+        return expected2 is not null && actual == expected2;
     }
 }

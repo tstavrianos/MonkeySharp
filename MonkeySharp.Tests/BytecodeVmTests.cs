@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using MonkeySharp.BytecodeVm;
-using MonkeySharp.BytecodeVm.Objects;
 using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
@@ -72,24 +71,16 @@ public class BytecodeVmTests
         new object[] { "[]", Array.Empty<object>() },
         new object[] { "[1, 2, 3]", new object[] { 1, 2, 3 } },
         new object[] { "[1 + 2, 3 - 4, 5 * 6]", new object[] { 3, -1, 30 } },
-        new object[] { "{}", new Dictionary<HashKey, object>() },
+        new object[] { "{}", new Dictionary<object, object>() },
         new object[]
         {
             "{1:2,2:3}",
-            new Dictionary<HashKey, object>
-            {
-                { Value.Integer(1).GetHashKey(), 2 },
-                { Value.Integer(2).GetHashKey(), 3 },
-            },
+            new Dictionary<object, object> { { 1, 2 }, { 2, 3 } },
         },
         new object[]
         {
             "{1+1:2*2,3+3:4*4}",
-            new Dictionary<HashKey, object>
-            {
-                { Value.Integer(2).GetHashKey(), 4 },
-                { Value.Integer(6).GetHashKey(), 16 },
-            },
+            new Dictionary<object, object> { { 2, 4 }, { 6, 16 } },
         },
         new object[] { "[1, 2, 3][1]", 2 },
         new object[] { "[1, 2, 3][0 + 2]", 3 },
@@ -246,32 +237,8 @@ public class BytecodeVmTests
     [TestCaseSource(nameof(VmTestCases))]
     public void RunVmTests(string input, object expected)
     {
-        var program = TestCommon.Parse(input);
-
-        if (program == null)
-        {
-            Assert.Fail("ParseProgram() returned nil");
-            return;
-        }
-
-        var comp = new BytecodeCompiler();
-        var err = comp.Compile(program);
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"compiler error: {err}");
-            return;
-        }
-
-        var vm = new Vm(comp.ByteCode());
-        err = vm.Run();
-        if (!string.IsNullOrEmpty(err))
-        {
-            Assert.Fail($"vm error: {err}");
-            return;
-        }
-
-        var stackElement = vm.LastPoppedStackElement;
-        if (!TestBytecodeVmCommon.TestValue(stackElement, expected, out err))
+        var evaluated = TestBytecodeVmCommon.Eval(input);
+        if (!TestBytecodeVmCommon.TestValue(evaluated, expected, out var err))
         {
             Assert.Fail(err);
             return;

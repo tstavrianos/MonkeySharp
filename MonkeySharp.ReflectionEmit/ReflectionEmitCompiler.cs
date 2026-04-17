@@ -94,6 +94,10 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         public static readonly MethodInfo MonkeyFunctionValidateArgumentCount =
             typeof(MonkeyFunction).GetMethod(nameof(MonkeyFunction.ValidateArgumentCount))!;
 
+        public static readonly MethodInfo MonkeyFunctionGetParameterCount = typeof(MonkeyFunction)
+            .GetProperty(nameof(MonkeyFunction.ParameterCount))!
+            .GetGetMethod()!;
+
         // Properties
         public static readonly MethodInfo MonkeyIntegerGetValue = typeof(MonkeyInteger)
             .GetProperty(nameof(MonkeyInteger.Value))!
@@ -122,6 +126,11 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         public static readonly MethodInfo DelegateGetTarget = typeof(Delegate)
             .GetProperty("Target")!
             .GetGetMethod()!;
+
+        public static readonly MethodInfo VariadicInvoke = typeof(Func<
+            MonkeyObject[],
+            MonkeyObject
+        >).GetMethod("Invoke")!;
     }
 
     #endregion
@@ -1571,6 +1580,7 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         _il.Emit(OpCodes.Stloc, objLocal);
 
         var boolLabel = _il.DefineLabel();
+        var monkeyNullLabel = _il.DefineLabel();
         var nullLabel = _il.DefineLabel();
         var endLabel = _il.DefineLabel();
 
@@ -1583,12 +1593,22 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         _il.Emit(OpCodes.Isinst, typeof(MonkeyBoolean));
         _il.Emit(OpCodes.Brtrue, boolLabel);
 
+        // Monkey null singleton is falsy.
+        _il.Emit(OpCodes.Ldloc, objLocal);
+        _il.Emit(OpCodes.Isinst, typeof(MonkeyNull));
+        _il.Emit(OpCodes.Brtrue, monkeyNullLabel);
+
         // All other non-null objects are truthy
         _il.Emit(OpCodes.Ldc_I4_1);
         _il.Emit(OpCodes.Br, endLabel);
 
         // Null is falsy
         _il.MarkLabel(nullLabel);
+        _il.Emit(OpCodes.Ldc_I4_0);
+        _il.Emit(OpCodes.Br, endLabel);
+
+        // Monkey null singleton is falsy
+        _il.MarkLabel(monkeyNullLabel);
         _il.Emit(OpCodes.Ldc_I4_0);
         _il.Emit(OpCodes.Br, endLabel);
 
@@ -1629,7 +1649,14 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         );
 
         var parameters = method.GetParameters();
-        var paramTypes = Enumerable.Repeat(typeof(MonkeyObject), parameters.Length).ToArray();
+        var isVariadic =
+            parameters.Length == 1
+            && parameters[0].IsDefined(typeof(ParamArrayAttribute), false)
+            && parameters[0].ParameterType == typeof(MonkeyObject[]);
+
+        var paramTypes = isVariadic
+            ? [typeof(MonkeyObject[])]
+            : Enumerable.Repeat(typeof(MonkeyObject), parameters.Length).ToArray();
 
         var wrapperMethod = wrapperTypeBuilder.DefineMethod(
             "Invoke",
@@ -1640,7 +1667,7 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
 
         var wrapperIl = wrapperMethod.GetILGenerator();
 
-        for (var i = 0; i < parameters.Length; i++)
+        for (var i = 0; i < paramTypes.Length; i++)
             wrapperIl.Emit(OpCodes.Ldarg, i + 1);
 
         wrapperIl.Emit(OpCodes.Call, method);
@@ -1651,9 +1678,14 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         _il!.Emit(OpCodes.Newobj, wrapperType.GetConstructor(Type.EmptyTypes)!);
         _il.Emit(OpCodes.Dup);
         _il.Emit(OpCodes.Ldvirtftn, wrapperType.GetMethod("Invoke")!);
-        _il.Emit(OpCodes.Newobj, GetFuncDelegateConstructor(parameters.Length));
+        _il.Emit(
+            OpCodes.Newobj,
+            isVariadic
+                ? GetVariadicDelegateConstructor()
+                : GetFuncDelegateConstructor(paramTypes.Length)
+        );
         _il.Emit(OpCodes.Ldstr, name);
-        _il.Emit(OpCodes.Ldc_I4, parameters.Length);
+        _il.Emit(OpCodes.Ldc_I4, isVariadic ? -1 : paramTypes.Length);
         _il.Emit(OpCodes.Newobj, CachedMembers.MonkeyFunctionCtor);
 
         return true;
@@ -1698,7 +1730,46 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
         _il.Emit(OpCodes.Ret);
 
         _il.MarkLabel(noErrorLabel);
+
+        // Variadic builtins are represented with ParameterCount = -1.
+        var fixedArityLabel = _il.DefineLabel();
+        var endCallLabel = _il.DefineLabel();
+
+        _il.Emit(OpCodes.Ldloc, funcLocal);
+        _il.Emit(OpCodes.Callvirt, CachedMembers.MonkeyFunctionGetParameterCount);
+        _il.Emit(OpCodes.Ldc_I4_M1);
+        _il.Emit(OpCodes.Bne_Un, fixedArityLabel);
+
+        EmitVariadicFunctionCall(funcLocal, argLocals);
+        if (isTailPosition)
+            _il.Emit(OpCodes.Ret);
+        else
+            _il.Emit(OpCodes.Br, endCallLabel);
+
+        _il.MarkLabel(fixedArityLabel);
         EmitFunctionCall(funcLocal, argLocals, isTailPosition);
+
+        if (!isTailPosition)
+            _il.MarkLabel(endCallLabel);
+    }
+
+    private void EmitVariadicFunctionCall(LocalBuilder funcLocal, LocalBuilder[] argLocals)
+    {
+        _il!.Emit(OpCodes.Ldloc, funcLocal);
+        _il.Emit(OpCodes.Callvirt, CachedMembers.MonkeyFunctionGetCompiledFunction);
+        _il.Emit(OpCodes.Castclass, typeof(Func<MonkeyObject[], MonkeyObject>));
+
+        _il.Emit(OpCodes.Ldc_I4, argLocals.Length);
+        _il.Emit(OpCodes.Newarr, typeof(MonkeyObject));
+        for (var i = 0; i < argLocals.Length; i++)
+        {
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldc_I4, i);
+            _il.Emit(OpCodes.Ldloc, argLocals[i]);
+            _il.Emit(OpCodes.Stelem_Ref);
+        }
+
+        _il.Emit(OpCodes.Callvirt, CachedMembers.VariadicInvoke);
     }
 
     private void EmitFunctionCall(
@@ -1741,6 +1812,11 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
     {
         var delegateType = GetFuncDelegateType(paramCount);
         return delegateType.GetConstructors()[0];
+    }
+
+    private static ConstructorInfo GetVariadicDelegateConstructor()
+    {
+        return typeof(Func<MonkeyObject[], MonkeyObject>).GetConstructors()[0];
     }
 
     private List<string> AnalyzeFreeVariables(FunctionLiteral functionLiteral)
@@ -1786,7 +1862,9 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
                     {
                         if (functionName != null && id.Value == functionName)
                             freeVars.Add(id.Value);
-                        else if (_locals.ContainsKey(id.Value))
+                        else if (
+                            _locals.ContainsKey(id.Value) || _closureFieldMap.ContainsKey(id.Value)
+                        )
                             freeVars.Add(id.Value);
                     }
 
@@ -1827,9 +1905,17 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
                     work.Push((ifExpr.Condition, null));
                     break;
 
-                case FunctionLiteral:
-                    // Nested functions are handled independently by AnalyzeFreeVariables.
+                case FunctionLiteral fn:
+                {
+                    var nestedBound = new HashSet<string>(boundVars);
+                    foreach (var p in fn.Parameters)
+                        nestedBound.Add(p.Value);
+                    if (!string.IsNullOrEmpty(fn.Name))
+                        nestedBound.Add(fn.Name);
+
+                    CollectFreeVariables(fn.Body, nestedBound, freeVars, functionName);
                     break;
+                }
 
                 case CallExpression call:
                     for (var i = call.Arguments.Count - 1; i >= 0; i--)

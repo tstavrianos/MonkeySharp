@@ -184,6 +184,11 @@ internal static class TreeWalker
         if (function.IsFunction)
         {
             var functionData = function.FunctionData!;
+            if (functionData.Parameters.Count != args.Count)
+                return Value.Error(
+                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Count}"
+                );
+
             var currentEnv = ExtendFunctionEnv(functionData, args);
             var currentBody = functionData.Body;
 
@@ -215,6 +220,11 @@ internal static class TreeWalker
                 // Update for next iteration
                 function = tailFunction;
                 functionData = tailFunction.FunctionData!;
+                if (functionData.Parameters.Count != tailArgs.Length)
+                    return Value.Error(
+                        $"wrong number of arguments. want={functionData.Parameters.Count}, got={tailArgs.Length}"
+                    );
+
                 currentEnv = ExtendFunctionEnv(functionData, tailArgs);
                 currentBody = functionData.Body;
             }
@@ -231,6 +241,11 @@ internal static class TreeWalker
         if (function.IsFunction)
         {
             var functionData = function.FunctionData!;
+            if (functionData.Parameters.Count != args.Count)
+                return Value.Error(
+                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Count}"
+                );
+
             var extendedEnv = ExtendFunctionEnv(functionData, args);
             var evaluated = Eval(functionData.Body, extendedEnv);
             if (evaluated.IsReturnValue)

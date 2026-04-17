@@ -235,7 +235,7 @@ internal sealed class MonkeyFunction : MonkeyObject
     /// </summary>
     public MonkeyError? ValidateArgumentCount(int argumentCount)
     {
-        if (argumentCount != ParameterCount)
+        if (ParameterCount >= 0 && argumentCount != ParameterCount)
             return new MonkeyError(
                 $"wrong number of arguments. want={ParameterCount}, got={argumentCount}"
             );

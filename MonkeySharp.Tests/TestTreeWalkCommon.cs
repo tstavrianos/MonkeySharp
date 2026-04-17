@@ -47,7 +47,7 @@ internal static class TestTreeWalkCommon
                 return TestStringValue(obj, s, out errorMessage);
             case object[] o:
                 return TestArrayValue(obj, o, out errorMessage);
-            case IReadOnlyDictionary<HashKey, object> d:
+            case IReadOnlyDictionary<object, object> d:
                 return TestHashValue(obj, d, out errorMessage);
             default:
                 errorMessage = $"type of object not handled. got={expected.GetType().Name}";
@@ -69,7 +69,7 @@ internal static class TestTreeWalkCommon
 
     private static bool TestHashValue(
         Value obj,
-        IReadOnlyDictionary<HashKey, object> dictionary,
+        IReadOnlyDictionary<object, object> dictionary,
         out string errorMessage
     )
     {
@@ -87,9 +87,30 @@ internal static class TestTreeWalkCommon
             return false;
         }
 
-        foreach (var (key, value) in dictionary)
+        var notMatched = new List<Value>();
+        foreach (var (hashKey, pair) in obj.HashPairs)
+        {
+            var found = false;
+            foreach (var (key, value) in dictionary)
+                if (TestValue(pair.Key, key, out _) && TestValue(pair.Value, value, out _))
+                {
+                    found = true;
+                    break;
+                }
+
+            if (!found)
+                notMatched.Add(pair.Key);
+        }
+
+        if (notMatched.Count > 0)
+        {
+            errorMessage = $"Not matched keys: {string.Join(',', notMatched)}";
+            return false;
+        }
+
+        /*foreach (var (key, value) in dictionary)
             if (!TestValue(obj.HashPairs[key].Value, value, out errorMessage))
-                return false;
+                return false;*/
 
         return true;
     }
