@@ -1,14 +1,14 @@
 <Solution>
-  <Folder Name="/solution files/">
-    <File Path=".gitignore" />
-    <File Path="LICENSE" />
-    <File Path="README.md" />
-  </Folder>
-  <Project Path="MonkeySharp.AbstractSyntaxTree/MonkeySharp.AbstractSyntaxTree.csproj" Id="f005c773-b670-479e-a736-900df756491c" />
-  <Project Path="MonkeySharp.Benchmarks/MonkeySharp.Benchmarks.csproj" />
-  <Project Path="MonkeySharp.Cli/MonkeySharp.Cli.csproj" />
-  <Project Path="MonkeySharp.Compiler/MonkeySharp.Compiler.csproj" Id="6e9f3b26-111e-4fdf-ae9c-8b2447a5537b" />
-  <Project Path="MonkeySharp.Interpreter/MonkeySharp.Interpreter.csproj" Id="11482cc2-e9ce-4f0b-aaf0-82bb1a75e28d" />
-  <Project Path="MonkeySharp.Tests/MonkeySharp.Tests.csproj" />
-  <Project Path="MonkeySharp.VirtualMachine/MonkeySharp.VirtualMachine.csproj" Id="edd7d609-0a6a-429a-8ad2-873f801fbdd2" />
+	<Folder Name="/solution files/">
+		<File Path=".gitignore" />
+		<File Path="LICENSE" />
+		<File Path="README.md" />
+	</Folder>
+	<Project Path="MonkeySharp.AbstractSyntaxTree/MonkeySharp.AbstractSyntaxTree.csproj" />
+	<Project Path="MonkeySharp.Benchmarks/MonkeySharp.Benchmarks.csproj" />
+	<Project Path="MonkeySharp.BytecodeVm/MonkeySharp.BytecodeVm.csproj" />
+	<Project Path="MonkeySharp.Cli/MonkeySharp.Cli.csproj" />
+	<Project Path="MonkeySharp.ReflectionEmit/MonkeySharp.ReflectionEmit.csproj" />
+	<Project Path="MonkeySharp.Tests/MonkeySharp.Tests.csproj" />
+	<Project Path="MonkeySharp.TreeWalk/MonkeySharp.TreeWalk.csproj" />
 </Solution>

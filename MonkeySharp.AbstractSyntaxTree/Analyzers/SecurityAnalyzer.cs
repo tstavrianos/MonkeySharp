@@ -3,7 +3,7 @@ using System.Linq;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
 
-namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree.Analyzers;
 
 /// <summary>
 /// Performs security analysis on an AST to detect potential security issues.
@@ -58,7 +58,7 @@ internal class SecurityAnalyzer
                     CollectFunctions(statement);
                 break;
 
-            case LetStatement { Value: FunctionLiteral functionLiteral } letStatement:
+            case LetStatement { Value: FunctionLiteral } letStatement:
                 var funcInfo = new FunctionInfo { Name = letStatement.Name.Value };
                 _functions[letStatement.Name.Value] = funcInfo;
                 break;

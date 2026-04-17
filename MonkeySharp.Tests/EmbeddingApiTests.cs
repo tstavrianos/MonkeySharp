@@ -1,14 +1,11 @@
-using System.Collections.Generic;
-using MonkeySharp.Compiler;
-using MonkeySharp.Interpreter;
-using MonkeySharp.VirtualMachine;
 using NUnit.Framework;
-using IlKind = MonkeySharp.Compiler.MonkeyValueKind;
-using IlValue = MonkeySharp.Compiler.MonkeyValue;
-using InterpreterKind = MonkeySharp.Interpreter.MonkeyValueKind;
-using InterpreterValue = MonkeySharp.Interpreter.MonkeyValue;
-using VmKind = MonkeySharp.VirtualMachine.MonkeyValueKind;
-using VmValue = MonkeySharp.VirtualMachine.MonkeyValue;
+using IlKind = MonkeySharp.ReflectionEmit.MonkeyValueKind;
+using IlValue = MonkeySharp.ReflectionEmit.MonkeyValue;
+using InterpreterKind = MonkeySharp.TreeWalk.MonkeyValueKind;
+using InterpreterValue = MonkeySharp.TreeWalk.MonkeyValue;
+using Session = MonkeySharp.TreeWalk.Session;
+using VmKind = MonkeySharp.BytecodeVm.MonkeyValueKind;
+using VmValue = MonkeySharp.BytecodeVm.MonkeyValue;
 
 namespace MonkeySharp.Tests;
 
@@ -16,9 +13,9 @@ namespace MonkeySharp.Tests;
 public class EmbeddingApiTests
 {
     [Test]
-    public void InterpreterSession_HostFunction_CanReturnInteger()
+    public void TreeWalkSession_HostFunction_CanReturnInteger()
     {
-        var session = new InterpreterSession();
+        var session = new Session();
         session.RegisterFunction(
             "hostAdd",
             2,
@@ -35,9 +32,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void VmSession_HostFunction_CanReturnInteger()
+    public void BytecodeVmSession_HostFunction_CanReturnInteger()
     {
-        var session = new VmSession();
+        var session = new BytecodeVm.Session();
         session.RegisterFunction(
             "hostAdd",
             2,
@@ -53,9 +50,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void InterpreterSession_HostFunction_CanRoundTripCompositeMonkeyValue()
+    public void TreeWalkSession_HostFunction_CanRoundTripCompositeMonkeyValue()
     {
-        var session = new InterpreterSession();
+        var session = new Session();
         session.RegisterFunction("echo", 1, args => args[0]);
 
         var parsed = session.Compile("echo({\"nums\": [1, 2, 3], \"ok\": true});");
@@ -81,9 +78,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void VmSession_HostFunction_CanRoundTripCompositeMonkeyValue()
+    public void BytecodeVmSession_HostFunction_CanRoundTripCompositeMonkeyValue()
     {
-        var session = new VmSession();
+        var session = new BytecodeVm.Session();
         session.RegisterFunction("echo", 1, args => args[0]);
 
         var compiled = session.Compile("echo({\"nums\": [1, 2, 3], \"ok\": true});");
@@ -109,9 +106,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void CompilerSession_HostFunction_CanReturnInteger()
+    public void ReflectionEmitSession_HostFunction_CanReturnInteger()
     {
-        var session = new ILCompilerSession();
+        var session = new ReflectionEmit.Session();
         session.RegisterFunction(
             "hostAdd",
             2,
@@ -128,9 +125,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void CompilerSession_HostFunction_CanRoundTripCompositeValue()
+    public void ReflectionEmitSession_HostFunction_CanRoundTripCompositeValue()
     {
-        var session = new ILCompilerSession();
+        var session = new ReflectionEmit.Session();
         session.RegisterFunction("echo", 1, args => args[0]);
 
         var result = session.Compile("echo({\"nums\": [1, 2, 3], \"ok\": true});");
@@ -160,9 +157,9 @@ public class EmbeddingApiTests
     }
 
     [Test]
-    public void CompilerSession_ParseError_ReturnsInvalidResult()
+    public void ReflectionEmitSession_ParseError_ReturnsInvalidResult()
     {
-        var session = new ILCompilerSession();
+        var session = new ReflectionEmit.Session();
         var result = session.Compile("let = ;");
         Assert.That(result.IsValid, Is.False);
         Assert.That(result.Diagnostics.Count, Is.GreaterThan(0));

@@ -12,9 +12,9 @@ public class ParserTests
 {
     private static readonly object[] ParseLetStatementsCases =
     [
-        new object[] {"let x = 5;", new (string left, object right)[] {("x", 5)}},
-        new object[] {"let y = true;", new (string left, object right)[] {("y", true)}},
-        new object[] {"let foobar = y;", new (string left, object right)[] {("foobar", "y")}}
+        new object[] { "let x = 5;", new (string left, object right)[] { ("x", 5) } },
+        new object[] { "let y = true;", new (string left, object right)[] { ("y", true) } },
+        new object[] { "let foobar = y;", new (string left, object right)[] { ("foobar", "y") } },
     ];
 
     [Test]
@@ -35,7 +35,8 @@ public class ParserTests
 
         if (program.Statements.Count != expectedIdentifiers.Length)
             Assert.Fail(
-                $"program.Statements does not contain {expectedIdentifiers.Length} statements. got={program.Statements.Count}");
+                $"program.Statements does not contain {expectedIdentifiers.Length} statements. got={program.Statements.Count}"
+            );
 
         for (var i = 0; i < expectedIdentifiers.Length; i++)
         {
@@ -52,9 +53,9 @@ public class ParserTests
 
     private static readonly object[] ParseReturnStatementsCases =
     [
-        new object[] {"return 5;", 5},
-        new object[] {"return 10;", 10},
-        new object[] {"return 993322;", 993322}
+        new object[] { "return 5;", 5 },
+        new object[] { "return 10;", 10 },
+        new object[] { "return 993322;", 993322 },
     ];
 
     [Test]
@@ -75,7 +76,8 @@ public class ParserTests
 
         if (program.Statements.Count != 1)
             Assert.Fail(
-                $"program.Statements does not contain 1 statements. got={program.Statements.Count}");
+                $"program.Statements does not contain 1 statements. got={program.Statements.Count}"
+            );
 
         if (!TestReturnValue(program.Statements[0], expectedReturnValue, out errorMessage))
         {
@@ -87,10 +89,10 @@ public class ParserTests
     }
 
     [Test]
-    [TestCase("5;", new object[] {5})]
-    [TestCase("foobar;", new object[] {"foobar"})]
-    [TestCase("true;", new object[] {true})]
-    [TestCase("false;", new object[] {false})]
+    [TestCase("5;", new object[] { 5 })]
+    [TestCase("foobar;", new object[] { "foobar" })]
+    [TestCase("true;", new object[] { true })]
+    [TestCase("false;", new object[] { false })]
     public void TestLiteralExpression(string input, object[] expectedValues)
     {
         var lexer = new Lexer(input);
@@ -106,7 +108,8 @@ public class ParserTests
             Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != expectedValues.Length)
             Assert.Fail(
-                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}");
+                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}"
+            );
 
         for (var i = 0; i < expectedValues.Length; i++)
         {
@@ -123,15 +126,18 @@ public class ParserTests
 
     private static readonly object[] TestParsingPrefixExpressionsCases =
     [
-        new object[] {"!5;", new (string oper, object value)[] {("!", 5)}},
-        new object[] {"-15;", new (string oper, object value)[] {("-", 15)}},
-        new object[] {"!true;", new (string oper, object value)[] {("!", true)}},
-        new object[] {"!false;", new (string oper, object value)[] {("!", false)}}
+        new object[] { "!5;", new (string oper, object value)[] { ("!", 5) } },
+        new object[] { "-15;", new (string oper, object value)[] { ("-", 15) } },
+        new object[] { "!true;", new (string oper, object value)[] { ("!", true) } },
+        new object[] { "!false;", new (string oper, object value)[] { ("!", false) } },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingPrefixExpressionsCases))]
-    public void TestParsingPrefixExpressions(string input, (string oper, object value)[] expectedValues)
+    public void TestParsingPrefixExpressions(
+        string input,
+        (string oper, object value)[] expectedValues
+    )
     {
         var lexer = new Lexer(input);
         var parser = new Parser(lexer);
@@ -146,7 +152,8 @@ public class ParserTests
             Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != expectedValues.Length)
             Assert.Fail(
-                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}");
+                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}"
+            );
 
         for (var i = 0; i < expectedValues.Length; i++)
         {
@@ -163,22 +170,37 @@ public class ParserTests
 
     private static readonly object[] TestParsingInfixExpressionsCases =
     [
-        new object[] {"5 + 5;", new (object left, string oper, object right)[] {(5, "+", 5)}},
-        new object[] {"5 - 5;", new (object left, string oper, object right)[] {(5, "-", 5)}},
-        new object[] {"5 * 5;", new (object left, string oper, object right)[] {(5, "*", 5)}},
-        new object[] {"5 / 5;", new (object left, string oper, object right)[] {(5, "/", 5)}},
-        new object[] {"5 > 5;", new (object left, string oper, object right)[] {(5, ">", 5)}},
-        new object[] {"5 < 5;", new (object left, string oper, object right)[] {(5, "<", 5)}},
-        new object[] {"5 == 5;", new (object left, string oper, object right)[] {(5, "==", 5)}},
-        new object[] {"5 != 5;", new (object left, string oper, object right)[] {(5, "!=", 5)}},
-        new object[] {"true == true;", new (object left, string oper, object right)[] {(true, "==", true)}},
-        new object[] {"true != false;", new (object left, string oper, object right)[] {(true, "!=", false)}},
-        new object[] {"false == false;", new (object left, string oper, object right)[] {(false, "==", false)}}
+        new object[] { "5 + 5;", new (object left, string oper, object right)[] { (5, "+", 5) } },
+        new object[] { "5 - 5;", new (object left, string oper, object right)[] { (5, "-", 5) } },
+        new object[] { "5 * 5;", new (object left, string oper, object right)[] { (5, "*", 5) } },
+        new object[] { "5 / 5;", new (object left, string oper, object right)[] { (5, "/", 5) } },
+        new object[] { "5 > 5;", new (object left, string oper, object right)[] { (5, ">", 5) } },
+        new object[] { "5 < 5;", new (object left, string oper, object right)[] { (5, "<", 5) } },
+        new object[] { "5 == 5;", new (object left, string oper, object right)[] { (5, "==", 5) } },
+        new object[] { "5 != 5;", new (object left, string oper, object right)[] { (5, "!=", 5) } },
+        new object[]
+        {
+            "true == true;",
+            new (object left, string oper, object right)[] { (true, "==", true) },
+        },
+        new object[]
+        {
+            "true != false;",
+            new (object left, string oper, object right)[] { (true, "!=", false) },
+        },
+        new object[]
+        {
+            "false == false;",
+            new (object left, string oper, object right)[] { (false, "==", false) },
+        },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingInfixExpressionsCases))]
-    public void TestParsingInfixExpressions(string input, (object left, string oper, object right)[] expectedValues)
+    public void TestParsingInfixExpressions(
+        string input,
+        (object left, string oper, object right)[] expectedValues
+    )
     {
         var lexer = new Lexer(input);
         var parser = new Parser(lexer);
@@ -193,7 +215,8 @@ public class ParserTests
             Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != expectedValues.Length)
             Assert.Fail(
-                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}");
+                $"program.Statements does not contain {expectedValues.Length} statements. got={program.Statements.Count}"
+            );
 
         for (var i = 0; i < expectedValues.Length; i++)
         {
@@ -231,7 +254,10 @@ public class ParserTests
     [TestCase("-(5 + 5)", "(-(5 + 5))")]
     [TestCase("!(true == true)", "(!(true == true))")]
     [TestCase("a + add(b * c) + d", "((a + add((b * c))) + d)")]
-    [TestCase("add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))", "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))")]
+    [TestCase(
+        "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+        "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"
+    )]
     [TestCase("add(a + b + c * d / f + g)", "add((((a + b) + ((c * d) / f)) + g))")]
     [TestCase("a * [1, 2, 3, 4][b * c] * d", "((a * ([1, 2, 3, 4][(b * c)])) * d)")]
     [TestCase("add(a * b[2], b[1], 2 * [1, 2][1])", "add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))")]
@@ -270,25 +296,36 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not IfExpression exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.IfExpression. got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.IfExpression. got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
-        if (!TestInfixExpression(exp.Condition, new ValueTuple<object, string, object>("x", "<", "y"),
-                out errorMessage))
+        if (
+            !TestInfixExpression(
+                exp.Condition,
+                new ValueTuple<object, string, object>("x", "<", "y"),
+                out errorMessage
+            )
+        )
         {
             Assert.Fail(errorMessage);
             return;
@@ -303,7 +340,8 @@ public class ParserTests
         if (exp.Consequence.Statements[0] is not ExpressionStatement consequence)
         {
             Assert.Fail(
-                $"consequence.Statements[0] is not ast.ExpressionStatement. got={exp.Consequence.Statements[0].GetType()}");
+                $"consequence.Statements[0] is not ast.ExpressionStatement. got={exp.Consequence.Statements[0].GetType()}"
+            );
             return;
         }
 
@@ -329,25 +367,36 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not IfExpression exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.IfExpression. got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.IfExpression. got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
-        if (!TestInfixExpression(exp.Condition, new ValueTuple<object, string, object>("x", "<", "y"),
-                out errorMessage))
+        if (
+            !TestInfixExpression(
+                exp.Condition,
+                new ValueTuple<object, string, object>("x", "<", "y"),
+                out errorMessage
+            )
+        )
         {
             Assert.Fail(errorMessage);
             return;
@@ -362,7 +411,8 @@ public class ParserTests
         if (exp.Consequence.Statements[0] is not ExpressionStatement consequence)
         {
             Assert.Fail(
-                $"consequence.Statements[0] is not ast.ExpressionStatement. got={exp.Consequence.Statements[0].GetType()}");
+                $"consequence.Statements[0] is not ast.ExpressionStatement. got={exp.Consequence.Statements[0].GetType()}"
+            );
             return;
         }
 
@@ -387,7 +437,8 @@ public class ParserTests
         if (exp.Alternative.Statements[0] is not ExpressionStatement alternative)
         {
             Assert.Fail(
-                $"alternative.Statements[0] is not ast.ExpressionStatement. got={exp.Alternative.Statements[0].GetType()}");
+                $"alternative.Statements[0] is not ast.ExpressionStatement. got={exp.Alternative.Statements[0].GetType()}"
+            );
             return;
         }
 
@@ -413,26 +464,34 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not FunctionLiteral function)
         {
-            Assert.Fail($"stmt.Expression is not ast.FunctionLiteralExpression. got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.FunctionLiteralExpression. got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (function.Parameters.Count != 2)
         {
-            Assert.Fail($"function literal parameters wrong. want 2, got={function.Parameters.Count}");
+            Assert.Fail(
+                $"function literal parameters wrong. want 2, got={function.Parameters.Count}"
+            );
             return;
         }
 
@@ -450,14 +509,17 @@ public class ParserTests
 
         if (function.Body.Statements.Count != 1)
         {
-            Assert.Fail($"function.Body.Statements has not 1 statements. got={function.Body.Statements.Count}");
+            Assert.Fail(
+                $"function.Body.Statements has not 1 statements. got={function.Body.Statements.Count}"
+            );
             return;
         }
 
         if (function.Body.Statements[0] is not ExpressionStatement bodyStmt)
         {
             Assert.Fail(
-                $"function.Body.Statements[0] is not ast.ExpressionStatement. got={function.Body.Statements[0].GetType()}");
+                $"function.Body.Statements[0] is not ast.ExpressionStatement. got={function.Body.Statements[0].GetType()}"
+            );
             return;
         }
 
@@ -472,8 +534,8 @@ public class ParserTests
 
     [Test]
     [TestCase("fn() {};", new string[0])]
-    [TestCase("fn(x) {};", new[] {"x"})]
-    [TestCase("fn(x, y, z) {};", new[] {"x", "y", "z"})]
+    [TestCase("fn(x) {};", new[] { "x" })]
+    [TestCase("fn(x, y, z) {};", new[] { "x", "y", "z" })]
     public void TestFunctionParameterParsing(string input, string[] expectedParameters)
     {
         var l = new Lexer(input);
@@ -485,32 +547,45 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not FunctionLiteral function)
         {
-            Assert.Fail($"stmt.Expression is not ast.FunctionLiteralExpression. got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.FunctionLiteralExpression. got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (function.Parameters.Count != expectedParameters.Length)
         {
             Assert.Fail(
-                $"function literal parameters wrong. want {expectedParameters.Length}, got={function.Parameters.Count}");
+                $"function literal parameters wrong. want {expectedParameters.Length}, got={function.Parameters.Count}"
+            );
             return;
         }
 
         for (var i = 0; i < expectedParameters.Length; i++)
-            if (!TestLiteralExpression(function.Parameters[i], expectedParameters[i], out errorMessage))
+            if (
+                !TestLiteralExpression(
+                    function.Parameters[i],
+                    expectedParameters[i],
+                    out errorMessage
+                )
+            )
             {
                 Assert.Fail(errorMessage);
                 return;
@@ -532,20 +607,26 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not CallExpression exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.CallExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.CallExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
@@ -579,7 +660,6 @@ public class ParserTests
             return;
         }
 
-
         Assert.Pass();
     }
 
@@ -596,20 +676,26 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not ArrayLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.ArrayLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.ArrayLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
@@ -653,20 +739,26 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not IndexExpression exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.IndexExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.IndexExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
@@ -685,16 +777,19 @@ public class ParserTests
         Assert.Pass();
     }
 
-    public static object[]
-        TestParsingHashLiteralsStringKeysCases =
-        [
-            new object[]
+    public static object[] TestParsingHashLiteralsStringKeysCases =
+    [
+        new object[]
+        {
+            "{\"one\": 1, \"two\": 2, \"three\": 3}",
+            new Dictionary<string, long>
             {
-                "{\"one\": 1, \"two\": 2, \"three\": 3}",
-                new Dictionary<string, long> {{"one", 1}, {"two", 2}, {"three", 3}}
-            }
-        ];
-
+                { "one", 1 },
+                { "two", 2 },
+                { "three", 3 },
+            },
+        },
+    ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingHashLiteralsStringKeysCases))]
@@ -709,26 +804,34 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not HashLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (exp.Pairs.Count != expected.Count)
         {
-            Assert.Fail($"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}");
+            Assert.Fail(
+                $"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}"
+            );
             return;
         }
 
@@ -757,16 +860,19 @@ public class ParserTests
         Assert.Pass();
     }
 
-    public static object[]
-        TestParsingHashLiteralsIntKeysCases =
-        [
-            new object[]
+    public static object[] TestParsingHashLiteralsIntKeysCases =
+    [
+        new object[]
+        {
+            "{1: \"one\", 2: \"two\", 3: \"three\"}",
+            new Dictionary<double, string>
             {
-                "{1: \"one\", 2: \"two\", 3: \"three\"}",
-                new Dictionary<double, string> {{1, "one"}, {2, "two"}, {3, "three"}}
-            }
-        ];
-
+                { 1, "one" },
+                { 2, "two" },
+                { 3, "three" },
+            },
+        },
+    ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingHashLiteralsIntKeysCases))]
@@ -781,26 +887,34 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not HashLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (exp.Pairs.Count != expected.Count)
         {
-            Assert.Fail($"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}");
+            Assert.Fail(
+                $"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}"
+            );
             return;
         }
 
@@ -829,16 +943,14 @@ public class ParserTests
         Assert.Pass();
     }
 
-    public static object[]
-        TestParsingHashLiteralsBooleanKeysCases =
-        [
-            new object[]
-            {
-                "{true: \"true\", false: \"false\"}",
-                new Dictionary<bool, string> {{true, "true"}, {false, "false"}}
-            }
-        ];
-
+    public static object[] TestParsingHashLiteralsBooleanKeysCases =
+    [
+        new object[]
+        {
+            "{true: \"true\", false: \"false\"}",
+            new Dictionary<bool, string> { { true, "true" }, { false, "false" } },
+        },
+    ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingHashLiteralsBooleanKeysCases))]
@@ -853,26 +965,34 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not HashLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (exp.Pairs.Count != expected.Count)
         {
-            Assert.Fail($"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}");
+            Assert.Fail(
+                $"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}"
+            );
             return;
         }
 
@@ -914,20 +1034,26 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not HashLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
@@ -947,17 +1073,19 @@ public class ParserTests
             "{\"one\": 0 + 1, \"two\": 10 - 8, \"three\": 15 / 5}",
             new Dictionary<string, (long left, string @operator, long right)>
             {
-                {"one", (0, "+", 1)},
-                {"two", (10, "-", 8)},
-                {"three", (15, "/", 5)}
-            }
-        }
+                { "one", (0, "+", 1) },
+                { "two", (10, "-", 8) },
+                { "three", (15, "/", 5) },
+            },
+        },
     ];
 
     [Test]
     [TestCaseSource(nameof(TestParsingHashLiteralsWithExpressionsCases))]
-    public void TestParsingHashLiteralsWithExpressions(string input,
-        Dictionary<string, (long left, string @operator, long right)> expected)
+    public void TestParsingHashLiteralsWithExpressions(
+        string input,
+        Dictionary<string, (long left, string @operator, long right)> expected
+    )
     {
         var l = new Lexer(input);
         var p = new Parser(l);
@@ -968,26 +1096,34 @@ public class ParserTests
             return;
         }
 
-        if (program == null) Assert.Fail("ParseProgram() returned nil");
+        if (program == null)
+            Assert.Fail("ParseProgram() returned nil");
         if (program.Statements.Count != 1)
-            Assert.Fail($"program.Statements has not enough statements. got={program.Statements.Count}");
+            Assert.Fail(
+                $"program.Statements has not enough statements. got={program.Statements.Count}"
+            );
 
         if (program.Statements[0] is not ExpressionStatement stmt)
         {
             Assert.Fail(
-                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}");
+                $"program.Statements[0] is not ast.ExpressionStatement. got={program.Statements[0].GetType()}"
+            );
             return;
         }
 
         if (stmt.Expression is not HashLiteral exp)
         {
-            Assert.Fail($"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}");
+            Assert.Fail(
+                $"stmt.Expression is not ast.HashLiteralExpression). got={stmt.Expression.GetType()}"
+            );
             return;
         }
 
         if (exp.Pairs.Count != expected.Count)
         {
-            Assert.Fail($"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}");
+            Assert.Fail(
+                $"hash.Pairs has wrong length. want={expected.Count}, got={exp.Pairs.Count}"
+            );
             return;
         }
 
@@ -1007,14 +1143,19 @@ public class ParserTests
 
             var value = exp.Pairs[key];
 
-            if (value is not InfixExpression infix)
+            if (value is not InfixExpression)
             {
                 Assert.Fail($"value is not ast.InfixExpression. got={value.GetType()}");
                 return;
             }
 
-            if (!TestInfixExpression(value, (expectedValue.left, expectedValue.@operator, expectedValue.right),
-                    out errorMessage))
+            if (
+                !TestInfixExpression(
+                    value,
+                    (expectedValue.left, expectedValue.@operator, expectedValue.right),
+                    out errorMessage
+                )
+            )
             {
                 Assert.Fail(errorMessage);
                 return;
@@ -1024,8 +1165,11 @@ public class ParserTests
         Assert.Pass();
     }
 
-
-    private static bool TestLetStatement(Statement s, (string left, object right) p, out string errorMessage)
+    private static bool TestLetStatement(
+        Statement s,
+        (string left, object right) p,
+        out string errorMessage
+    )
     {
         errorMessage = string.Empty;
         if (s.TokenLiteral != "let")
@@ -1046,7 +1190,8 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(letStmt.Value, p.right, out errorMessage)) return false;
+        if (!TestLiteralExpression(letStmt.Value, p.right, out errorMessage))
+            return false;
 
         return true;
     }
@@ -1066,7 +1211,8 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(returnStmt.ReturnValue, value, out errorMessage)) return false;
+        if (!TestLiteralExpression(returnStmt.ReturnValue, value, out errorMessage))
+            return false;
 
         return true;
     }
@@ -1080,7 +1226,8 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(stmt.Expression, value, out errorMessage)) return false;
+        if (!TestLiteralExpression(stmt.Expression, value, out errorMessage))
+            return false;
 
         return true;
     }
@@ -1182,9 +1329,11 @@ public class ParserTests
         return true;
     }
 
-
-    private bool TestPrefixExpression(Statement s, (string oper, object value) expectedValue,
-        out string errorMessage)
+    private bool TestPrefixExpression(
+        Statement s,
+        (string oper, object value) expectedValue,
+        out string errorMessage
+    )
     {
         errorMessage = string.Empty;
         if (s is not ExpressionStatement stmt)
@@ -1195,7 +1344,8 @@ public class ParserTests
 
         if (stmt.Expression is not PrefixExpression exp)
         {
-            errorMessage = $"stmt.Expression not *ast.PrefixExpression. got={stmt.Expression.GetType().Name}";
+            errorMessage =
+                $"stmt.Expression not *ast.PrefixExpression. got={stmt.Expression.GetType().Name}";
             return false;
         }
 
@@ -1205,13 +1355,17 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(exp.Right, expectedValue.value, out errorMessage)) return false;
+        if (!TestLiteralExpression(exp.Right, expectedValue.value, out errorMessage))
+            return false;
 
         return true;
     }
 
-    private bool TestInfixExpression(Statement s, (object left, string oper, object right) expectedValue,
-        out string errorMessage)
+    private bool TestInfixExpression(
+        Statement s,
+        (object left, string oper, object right) expectedValue,
+        out string errorMessage
+    )
     {
         errorMessage = string.Empty;
         if (s is not ExpressionStatement stmt)
@@ -1222,11 +1376,13 @@ public class ParserTests
 
         if (stmt.Expression is not InfixExpression exp)
         {
-            errorMessage = $"stmt.Expression not *ast.InfixExpression. got={stmt.Expression.GetType().Name}";
+            errorMessage =
+                $"stmt.Expression not *ast.InfixExpression. got={stmt.Expression.GetType().Name}";
             return false;
         }
 
-        if (!TestLiteralExpression(exp.Left, expectedValue.left, out errorMessage)) return false;
+        if (!TestLiteralExpression(exp.Left, expectedValue.left, out errorMessage))
+            return false;
 
         if (exp.Operator != expectedValue.oper)
         {
@@ -1234,13 +1390,17 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(exp.Right, expectedValue.right, out errorMessage)) return false;
+        if (!TestLiteralExpression(exp.Right, expectedValue.right, out errorMessage))
+            return false;
 
         return true;
     }
 
-    private bool TestInfixExpression(Expression e, (object left, string oper, object right) expectedValue,
-        out string errorMessage)
+    private bool TestInfixExpression(
+        Expression e,
+        (object left, string oper, object right) expectedValue,
+        out string errorMessage
+    )
     {
         errorMessage = string.Empty;
         if (e is not InfixExpression exp)
@@ -1249,7 +1409,8 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(exp.Left, expectedValue.left, out errorMessage)) return false;
+        if (!TestLiteralExpression(exp.Left, expectedValue.left, out errorMessage))
+            return false;
 
         if (exp.Operator != expectedValue.oper)
         {
@@ -1257,7 +1418,8 @@ public class ParserTests
             return false;
         }
 
-        if (!TestLiteralExpression(exp.Right, expectedValue.right, out errorMessage)) return false;
+        if (!TestLiteralExpression(exp.Right, expectedValue.right, out errorMessage))
+            return false;
 
         return true;
     }

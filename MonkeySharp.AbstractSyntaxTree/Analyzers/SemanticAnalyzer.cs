@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
 
-namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree.Analyzers;
 
 /// <summary>
 /// Performs static semantic analysis on an AST to detect errors before evaluation.

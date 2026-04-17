@@ -1,12 +1,9 @@
-﻿using System.Data;
-
-namespace MonkeySharp.Benchmarks;
+﻿namespace MonkeySharp.Benchmarks;
 
 internal static class Categories
 {
-    public const string Vm = "Vm";
-    public const string Evaluator = "Evaluator";
-    public const string Optimized = "Optimized";
+    public const string BytecodeVm = "BytecodeVm";
+    public const string TreeWalk = "TreeWalk";
     public const string Native = "Native";
-    public const string IL = "IL";
+    public const string ReflectionEmit = "ReflectionEmit";
 }

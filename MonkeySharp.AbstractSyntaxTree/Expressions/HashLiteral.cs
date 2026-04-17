@@ -23,8 +23,7 @@ internal sealed class HashLiteral(Token token, IReadOnlyDictionary<Expression, E
     /// Gets the read-only dictionary of expression pairs that constitute the key-value mappings of this hash literal.
     /// If the provided pairs parameter is null, an empty dictionary is used.
     /// </summary>
-    public IReadOnlyDictionary<Expression, Expression> Pairs { get; } =
-        pairs ?? new Dictionary<Expression, Expression>();
+    public IReadOnlyDictionary<Expression, Expression> Pairs { get; } = pairs;
 
     /// <summary>
     /// Returns a string representation of the hash literal in the format {key1:value1, key2:value2, ...}.

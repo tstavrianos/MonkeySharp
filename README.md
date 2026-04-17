@@ -13,7 +13,7 @@ of language design and implementation.
 
 - Finished "Writing an Interpreter in Go"
 - Finished "Writing a Compiler in Go"
-- All tests (356 of them) passing
+- All tests (471) passing
 
 ## Next Steps
 
@@ -23,5 +23,4 @@ of language design and implementation.
 - [ ] Extend the built-in functions
 - [ ] Make the language more easily embeddable in C# applications
 - [ ] Go through the tests again and check if I missed any (the tests are from an earlier attempt at this project and
-  might
-  not be 1-1 with the books)
+  might not be 1-1 with the books)

@@ -10,7 +10,8 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// </summary>
 /// <param name="token">The token representing the opening brace of the block.</param>
 /// <param name="statements">The collection of statements contained within the block. If null, an empty collection is used.</param>
-internal sealed class BlockStatement(Token token, IReadOnlyList<Statement> statements) : Statement(token)
+internal sealed class BlockStatement(Token token, IReadOnlyList<Statement> statements)
+    : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.
@@ -23,7 +24,7 @@ internal sealed class BlockStatement(Token token, IReadOnlyList<Statement> state
     /// <value>
     /// A read-only list of <see cref="Statement"/> objects. Returns an empty collection if no statements were provided.
     /// </value>
-    public IReadOnlyList<Statement> Statements { get; } = statements ?? [];
+    public IReadOnlyList<Statement> Statements { get; } = statements;
 
     /// <summary>
     /// Returns a string representation of the block statement by concatenating
@@ -33,7 +34,8 @@ internal sealed class BlockStatement(Token token, IReadOnlyList<Statement> state
     public override string ToString()
     {
         var ret = new StringBuilder();
-        foreach (var statement in Statements) ret.Append(statement.ToString());
+        foreach (var statement in Statements)
+            ret.Append(statement);
         return ret.ToString();
     }
 

@@ -1,0 +1,13 @@
+﻿namespace MonkeySharp.BytecodeVm;
+
+internal readonly struct Definition
+{
+    public readonly string Name;
+    public readonly int[] OperandWidths;
+
+    internal Definition(string name, int[] operandWidths)
+    {
+        Name = name;
+        OperandWidths = operandWidths;
+    }
+}

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.VirtualMachine;
+using MonkeySharp.BytecodeVm;
 
 namespace MonkeySharp.Cli;
 
@@ -15,7 +15,7 @@ internal static class Program
         );
         Console.WriteLine("Feel free to type in commands");
 
-        var vmSession = new VmSession();
+        var vmSession = new Session();
         while (true)
         {
             Console.Write(Prompt);

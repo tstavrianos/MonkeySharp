@@ -15,13 +15,13 @@
 			<_Parameter1>MonkeySharp.Benchmarks</_Parameter1>
 		</AssemblyAttribute>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>MonkeySharp.Compiler</_Parameter1>
+			<_Parameter1>MonkeySharp.ReflectionEmit</_Parameter1>
 		</AssemblyAttribute>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>MonkeySharp.Interpreter</_Parameter1>
+			<_Parameter1>MonkeySharp.TreeWalk</_Parameter1>
 		</AssemblyAttribute>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-			<_Parameter1>MonkeySharp.VirtualMachine</_Parameter1>
+			<_Parameter1>MonkeySharp.BytecodeVm</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>
 </Project>

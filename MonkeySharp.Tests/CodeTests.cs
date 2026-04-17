@@ -1,5 +1,5 @@
 ﻿using System;
-using MonkeySharp.VirtualMachine;
+using MonkeySharp.BytecodeVm;
 using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
@@ -12,10 +12,10 @@ public class CodeTests
         new object[]
         {
             (byte)OpCode.Constant,
-            new int[] { 65534 },
+            new[] { 65534 },
             new byte[] { (byte)OpCode.Constant, 255, 254 },
         },
-        new object[] { (byte)OpCode.Add, Array.Empty<int>(), new byte[] { (byte)OpCode.Add } },
+        new object[] { (byte)OpCode.Add, Array.Empty<int>(), new[] { (byte)OpCode.Add } },
         new object[]
         {
             (byte)OpCode.GetLocal,

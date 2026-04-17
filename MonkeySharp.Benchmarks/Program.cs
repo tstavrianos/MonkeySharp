@@ -13,10 +13,10 @@ CultureInfo.CurrentUICulture = cultureInfo;
 CultureInfo.DefaultThreadCurrentCulture = cultureInfo;
 CultureInfo.DefaultThreadCurrentUICulture = cultureInfo;
 
-var benchmark = BenchmarkSwitcher.FromTypes([typeof(Benchmarks)]);
+var benchmark = BenchmarkSwitcher.FromTypes([typeof(ComparisonBenchmarks)]);
 
-IConfig configuration = DefaultConfig.Instance
-    .WithOptions(ConfigOptions.DisableOptimizationsValidator)
+IConfig configuration = DefaultConfig
+    .Instance.WithOptions(ConfigOptions.DisableOptimizationsValidator)
     .WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest));
 
 if (args.Length > 0)

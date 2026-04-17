@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
 
-namespace MonkeySharp.AbstractSyntaxTree;
+namespace MonkeySharp.AbstractSyntaxTree.Analyzers;
 
 /// <summary>
 /// Performs data flow analysis to detect uninitialized variables and other data flow issues.

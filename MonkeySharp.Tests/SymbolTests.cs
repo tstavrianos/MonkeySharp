@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using MonkeySharp.VirtualMachine;
+﻿using MonkeySharp.BytecodeVm;
 using NUnit.Framework;
 
 namespace MonkeySharp.Tests;
@@ -59,10 +58,7 @@ public class SymbolTests
         {
             var expectedSymbol = new Symbol(sym.Name, (SymbolScope)sym.Scope, sym.Index);
             if (!global.Resolve(sym.Name, out var result))
-            {
                 Assert.Fail($"name {sym.Name} not resolvable");
-                continue;
-            }
 
             if (result != expectedSymbol)
                 Assert.Fail($"expected {sym.Name} to resolve to {expectedSymbol}, got={result}");
@@ -109,10 +105,7 @@ public class SymbolTests
         {
             var expectedSymbol = new Symbol(sym.Name, (SymbolScope)sym.Scope, sym.Index);
             if (!local.Resolve(sym.Name, out var result))
-            {
                 Assert.Fail($"name {sym.Name} not resolvable");
-                continue;
-            }
 
             if (result != expectedSymbol)
                 Assert.Fail($"expected {sym.Name} to resolve to {expectedSymbol}, got={result}");

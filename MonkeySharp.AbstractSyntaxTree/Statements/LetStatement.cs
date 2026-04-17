@@ -10,7 +10,8 @@ namespace MonkeySharp.AbstractSyntaxTree.Statements;
 /// <param name="token">The token associated with this statement (the 'let' keyword).</param>
 /// <param name="name">The identifier being bound in this let statement.</param>
 /// <param name="value">The expression whose value will be assigned to the identifier.</param>
-internal sealed class LetStatement(Token token, Identifier name, Expression value) : Statement(token)
+internal sealed class LetStatement(Token token, Identifier name, Expression value)
+    : Statement(token)
 {
     /// <summary>
     /// Gets the type of this statement, which categorizes the statement node.
@@ -33,7 +34,7 @@ internal sealed class LetStatement(Token token, Identifier name, Expression valu
     /// <returns>A string in the format "let name = value;".</returns>
     public override string ToString()
     {
-        return $"{TokenLiteral} {Name} = {Value?.ToString() ?? string.Empty};";
+        return $"{TokenLiteral} {Name} = {Value};";
     }
 
     /// <summary>

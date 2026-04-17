@@ -1,6 +1,6 @@
-﻿using MonkeySharp.AbstractSyntaxTree;
+﻿using System.Text;
+using MonkeySharp.AbstractSyntaxTree;
 using NUnit.Framework;
-using System.Text;
 
 namespace MonkeySharp.Tests;
 
@@ -23,7 +23,8 @@ internal static class TestCommon
     internal static bool CheckParserErrors(Parser p, out string errorMessage)
     {
         errorMessage = string.Empty;
-        if (p.Errors.Count == 0) return true;
+        if (p.Errors.Count == 0)
+            return true;
         var sb = new StringBuilder();
         sb.AppendLine($"parser has {p.Errors.Count} errors");
         foreach (var error in p.Errors)

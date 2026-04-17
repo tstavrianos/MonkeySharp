@@ -15,13 +15,13 @@ internal class Lexer
 {
     private static readonly Dictionary<string, TokenType> Keywords = new()
     {
-        {"fn", TokenType.Function},
-        {"let", TokenType.Let},
-        {"true", TokenType.True},
-        {"false", TokenType.False},
-        {"if", TokenType.If},
-        {"else", TokenType.Else},
-        {"return", TokenType.Return}
+        { "fn", TokenType.Function },
+        { "let", TokenType.Let },
+        { "true", TokenType.True },
+        { "false", TokenType.False },
+        { "if", TokenType.If },
+        { "else", TokenType.Else },
+        { "return", TokenType.Return },
     };
 
     private const char NullChar = '\0';
@@ -34,7 +34,7 @@ internal class Lexer
 
     public Lexer(string input)
     {
-        _input = input ?? string.Empty;
+        _input = input;
         ReadChar();
     }
 
@@ -190,7 +190,8 @@ internal class Lexer
     private string ReadIdentifier()
     {
         var position = _position;
-        while (IsLetter(_ch)) ReadChar();
+        while (IsLetter(_ch))
+            ReadChar();
         return _input[position.._position];
     }
 
@@ -224,7 +225,8 @@ internal class Lexer
     /// method is typically used to ignore insignificant whitespace when processing input streams.</remarks>
     private void SkipWhitespace()
     {
-        while (_ch is ' ' or '\t' or '\n' or '\r') ReadChar();
+        while (_ch is ' ' or '\t' or '\n' or '\r')
+            ReadChar();
     }
 
     /// <summary>
@@ -245,7 +247,8 @@ internal class Lexer
     private string ReadNumber()
     {
         var position = _position;
-        while (IsDigit(_ch)) ReadChar();
+        while (IsDigit(_ch))
+            ReadChar();
         return _input[position.._position];
     }
 
@@ -268,7 +271,8 @@ internal class Lexer
             ReadChar();
             if (_ch == QuoteChar)
                 break;
-            if (_ch == NullChar) return false;
+            if (_ch == NullChar)
+                return false;
         }
 
         str = _input[position.._position];

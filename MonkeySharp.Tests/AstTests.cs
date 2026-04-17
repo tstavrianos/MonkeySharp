@@ -29,9 +29,7 @@ public class AstTests
     {
         var programNode = (ProgramNode)programNodeObj;
         if (programNode.ToString() != expected)
-            Assert.Fail(
-                $"programNode.ToString() wrong. expected={expected}, got={programNode.ToString()}"
-            );
+            Assert.Fail($"programNode.ToString() wrong. expected={expected}, got={programNode}");
         Assert.Pass();
     }
 }

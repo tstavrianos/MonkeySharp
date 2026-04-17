@@ -28,7 +28,7 @@ internal sealed class ExpressionStatement(Token token, Expression expression) : 
     /// </returns>
     public override string ToString()
     {
-        return Expression?.ToString() ?? string.Empty;
+        return Expression.ToString();
     }
 
     /// <summary>
