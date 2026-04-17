@@ -36,13 +36,11 @@ internal sealed class SymbolTable
         {
             if (current._store.TryGetValue(name, out var found))
             {
-                if (current == this)
-                {
-                    result = found;
-                    return true;
-                }
-
-                if (found.Scope == SymbolScope.Global || found.Scope == SymbolScope.Builtin)
+                if (
+                    current == this
+                    || found.Scope == SymbolScope.Global
+                    || found.Scope == SymbolScope.Builtin
+                )
                 {
                     result = found;
                     return true;
@@ -65,12 +63,12 @@ internal sealed class SymbolTable
         return false;
     }
 
-    internal Symbol DefineBuiltin(int index, string name)
+    internal void DefineBuiltin(int index, string name)
     {
-        return _store[name] = new Symbol(name, SymbolScope.Builtin, index);
+        _store[name] = new Symbol(name, SymbolScope.Builtin, index);
     }
 
-    internal Symbol DefineFree(Symbol original)
+    private Symbol DefineFree(Symbol original)
     {
         FreeSymbols.Add(original);
         return _store[original.Name] = new Symbol(
@@ -80,8 +78,8 @@ internal sealed class SymbolTable
         );
     }
 
-    internal Symbol DefineFunctionName(string name)
+    internal void DefineFunctionName(string name)
     {
-        return _store[name] = new Symbol(name, SymbolScope.Function, 0);
+        _store[name] = new Symbol(name, SymbolScope.Function, 0);
     }
 }

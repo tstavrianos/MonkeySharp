@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using MonkeySharp.AbstractSyntaxTree;
 using MonkeySharp.ReflectionEmit;
 
 namespace MonkeySharp.Tests;

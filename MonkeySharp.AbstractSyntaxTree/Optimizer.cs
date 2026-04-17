@@ -93,7 +93,7 @@ internal class Optimizer
             if (right is BooleanLiteral booleanLiteral)
                 return (booleanLiteral.Value ? BooleanLiteral.False : BooleanLiteral.True, true);
 
-            if (right is InfixExpression ie && (ie.Operator == "==" || ie.Operator == "!="))
+            if (right is InfixExpression ie && ie.Operator is "==" or "!=")
             {
                 var flipped = ie.Operator == "==" ? "!=" : "==";
                 return (new InfixExpression(ie.Token, ie.Left, flipped, ie.Right), true);
@@ -644,13 +644,21 @@ internal class Optimizer
             modified |= statementModified;
 
             // NEW: Check for if-expression with constant false condition
-            if (newStatement is ExpressionStatement { Expression: IfExpression ifExpr })
-                if (ifExpr is { Condition: BooleanLiteral { Value: false }, Alternative: null })
+            if (
+                newStatement is ExpressionStatement
                 {
-                    // Skip this statement entirely - it will never execute
-                    modified = true;
-                    continue;
+                    Expression: IfExpression
+                    {
+                        Condition: BooleanLiteral { Value: false },
+                        Alternative: null
+                    }
                 }
+            )
+            {
+                // Skip this statement entirely - it will never execute
+                modified = true;
+                continue;
+            }
 
             statements.Add(newStatement!);
 

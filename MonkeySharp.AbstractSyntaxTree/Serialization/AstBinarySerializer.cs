@@ -30,7 +30,7 @@ internal class AstBinarySerializer : IExpressionVisitor, IStatementVisitor
         var serializer = new AstBinarySerializer(writer);
 
         // Write magic header for validation
-        writer.Write(Encoding.ASCII.GetBytes("MAST")); // MonkeySharp AST
+        writer.Write("MAST"u8.ToArray()); // MonkeySharp AST
         writer.Write((byte)1); // Version
 
         // Write statements count

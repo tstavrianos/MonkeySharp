@@ -26,7 +26,7 @@ internal class StaticAnalyzer
     /// <param name="runQuality">Whether to run code quality analysis</param>
     /// <param name="runDataFlow">Whether to run data flow analysis</param>
     /// <returns>True if no errors were found (warnings are acceptable)</returns>
-    public bool Analyze(
+    public void Analyze(
         Node node,
         IEnumerable<(string, int)>? builtinNamesAndArguments = null,
         bool runSecurity = true,
@@ -43,32 +43,28 @@ internal class StaticAnalyzer
         _warnings.AddRange(_semanticAnalyzer.Warnings);
 
         // Only continue with other analyses if semantic analysis passed
-        if (semanticSuccess)
+        if (!semanticSuccess)
+            return;
+        // 2. Security Analysis
+        if (runSecurity)
         {
-            // 2. Security Analysis
-            if (runSecurity)
-            {
-                _securityAnalyzer.Analyze(node);
-                _warnings.AddRange(_securityAnalyzer.Warnings);
-            }
-
-            // 3. Code Quality Analysis
-            if (runQuality)
-            {
-                _qualityAnalyzer.Analyze(node);
-                _warnings.AddRange(_qualityAnalyzer.Warnings);
-            }
-
-            // 4. Data Flow Analysis
-            if (runDataFlow)
-            {
-                _dataFlowAnalyzer.Analyze(node);
-                _errors.AddRange(_dataFlowAnalyzer.Errors);
-                _warnings.AddRange(_dataFlowAnalyzer.Warnings);
-            }
+            _securityAnalyzer.Analyze(node);
+            _warnings.AddRange(_securityAnalyzer.Warnings);
         }
 
-        return _errors.Count == 0;
+        // 3. Code Quality Analysis
+        if (runQuality)
+        {
+            _qualityAnalyzer.Analyze(node);
+            _warnings.AddRange(_qualityAnalyzer.Warnings);
+        }
+
+        // 4. Data Flow Analysis
+        if (!runDataFlow)
+            return;
+        _dataFlowAnalyzer.Analyze(node);
+        _errors.AddRange(_dataFlowAnalyzer.Errors);
+        _warnings.AddRange(_dataFlowAnalyzer.Warnings);
     }
 
     /// <summary>

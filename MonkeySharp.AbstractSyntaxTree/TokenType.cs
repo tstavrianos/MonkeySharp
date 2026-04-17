@@ -41,79 +41,47 @@ internal enum TokenType
     Return,
 
     Equal,
-    NotEqual
+    NotEqual,
 }
 
 internal static class TokenTypeExtensions
 {
     public static string String(this TokenType type)
     {
-        switch (type)
+        return type switch
         {
-            case TokenType.Illegal:
-                return "ILLEGAL";
-            case TokenType.EndOfFile:
-                return "EOF";
-            case TokenType.Identifier:
-                return "IDENT";
-            case TokenType.Integer:
-                return "INT";
-            case TokenType.String:
-                return "STRING";
-            case TokenType.Assign:
-                return "=";
-            case TokenType.Plus:
-                return "+";
-            case TokenType.Comma:
-                return ",";
-            case TokenType.Semicolon:
-                return ";";
-            case TokenType.LeftParen:
-                return "(";
-            case TokenType.RightParen:
-                return ")";
-            case TokenType.LeftBrace:
-                return "{";
-            case TokenType.RightBrace:
-                return "}";
-            case TokenType.LeftBracket:
-                return "[";
-            case TokenType.RightBracket:
-                return "]";
-            case TokenType.Function:
-                return "FUNCTION";
-            case TokenType.Let:
-                return "LET";
-            case TokenType.Minus:
-                return "-";
-            case TokenType.Bang:
-                return "!";
-            case TokenType.Asterisk:
-                return "*";
-            case TokenType.Slash:
-                return "/";
-            case TokenType.LessThan:
-                return "<";
-            case TokenType.GreaterThan:
-                return ">";
-            case TokenType.True:
-                return "true";
-            case TokenType.False:
-                return "false";
-            case TokenType.If:
-                return "if";
-            case TokenType.Else:
-                return "else";
-            case TokenType.Return:
-                return "return";
-            case TokenType.Equal:
-                return "==";
-            case TokenType.NotEqual:
-                return "!=";
-            case TokenType.Colon:
-                return ":";
-            default:
-                throw new ArgumentOutOfRangeException(nameof(type), type, null);
-        }
+            TokenType.Illegal => "ILLEGAL",
+            TokenType.EndOfFile => "EOF",
+            TokenType.Identifier => "IDENT",
+            TokenType.Integer => "INT",
+            TokenType.String => "STRING",
+            TokenType.Assign => "=",
+            TokenType.Plus => "+",
+            TokenType.Comma => ",",
+            TokenType.Semicolon => ";",
+            TokenType.LeftParen => "(",
+            TokenType.RightParen => ")",
+            TokenType.LeftBrace => "{",
+            TokenType.RightBrace => "}",
+            TokenType.LeftBracket => "[",
+            TokenType.RightBracket => "]",
+            TokenType.Function => "FUNCTION",
+            TokenType.Let => "LET",
+            TokenType.Minus => "-",
+            TokenType.Bang => "!",
+            TokenType.Asterisk => "*",
+            TokenType.Slash => "/",
+            TokenType.LessThan => "<",
+            TokenType.GreaterThan => ">",
+            TokenType.True => "true",
+            TokenType.False => "false",
+            TokenType.If => "if",
+            TokenType.Else => "else",
+            TokenType.Return => "return",
+            TokenType.Equal => "==",
+            TokenType.NotEqual => "!=",
+            TokenType.Colon => ":",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null),
+        };
     }
 }

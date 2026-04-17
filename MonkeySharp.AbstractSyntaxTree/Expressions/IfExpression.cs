@@ -26,18 +26,18 @@ internal sealed class IfExpression(
     /// <summary>
     /// Gets or sets the boolean expression that determines which branch to execute.
     /// </summary>
-    public Expression Condition { get; set; } = condition;
+    public Expression Condition { get; } = condition;
 
     /// <summary>
     /// Gets or sets the block statement to execute when the condition evaluates to true.
     /// </summary>
-    public BlockStatement Consequence { get; set; } = consequence;
+    public BlockStatement Consequence { get; } = consequence;
 
     /// <summary>
     /// Gets or sets the block statement to execute when the condition evaluates to false.
     /// Can be null if there is no else clause.
     /// </summary>
-    public BlockStatement? Alternative { get; set; } = alternative;
+    public BlockStatement? Alternative { get; } = alternative;
 
     /// <summary>
     /// Returns a string representation of the if-else expression.
@@ -50,11 +50,10 @@ internal sealed class IfExpression(
         ret.Append(Condition);
         ret.Append(' ');
         ret.Append(Consequence);
-        if (Alternative != null)
-        {
-            ret.Append("else ");
-            ret.Append(Alternative);
-        }
+        if (Alternative == null)
+            return ret.ToString();
+        ret.Append("else ");
+        ret.Append(Alternative);
 
         return ret.ToString();
     }

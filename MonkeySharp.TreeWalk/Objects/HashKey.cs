@@ -4,9 +4,9 @@ namespace MonkeySharp.TreeWalk.Objects;
 
 internal readonly struct HashKey : IEquatable<HashKey>
 {
-    public string Type { get; }
+    private string Type { get; }
 
-    public ulong Value { get; }
+    private ulong Value { get; }
 
     internal HashKey(string objectType, ulong value)
     {

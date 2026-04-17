@@ -177,9 +177,10 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
 
         _moduleBuilder = assemblyBuilder.DefineDynamicModule($"Module_{Guid.NewGuid():N}");
 
-        if (hostFunctions != null)
-            foreach (var (name, (arity, fn)) in hostFunctions)
-                _hostWrappers[name] = CreateHostWrapper(name, arity, fn);
+        if (hostFunctions == null)
+            return;
+        foreach (var (name, (arity, fn)) in hostFunctions)
+            _hostWrappers[name] = CreateHostWrapper(name, arity, fn);
     }
 
     // Builds a standalone wrapper type whose static delegate field stores the host callback,
@@ -1210,12 +1211,11 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
 
     private void PopScope()
     {
-        if (_scopeStack.Count > 0)
-        {
-            _locals.Clear();
-            foreach (var kvp in _scopeStack.Pop())
-                _locals[kvp.Key] = kvp.Value;
-        }
+        if (_scopeStack.Count <= 0)
+            return;
+        _locals.Clear();
+        foreach (var kvp in _scopeStack.Pop())
+            _locals[kvp.Key] = kvp.Value;
     }
 
     private void EmitNull()
@@ -1859,14 +1859,12 @@ internal sealed class ReflectionEmitCompiler : IStatementVisitor, IExpressionVis
             {
                 case Identifier id:
                     if (!boundVars.Contains(id.Value))
-                    {
-                        if (functionName != null && id.Value == functionName)
-                            freeVars.Add(id.Value);
-                        else if (
-                            _locals.ContainsKey(id.Value) || _closureFieldMap.ContainsKey(id.Value)
+                        if (
+                            (functionName != null && id.Value == functionName)
+                            || _locals.ContainsKey(id.Value)
+                            || _closureFieldMap.ContainsKey(id.Value)
                         )
                             freeVars.Add(id.Value);
-                    }
 
                     break;
 

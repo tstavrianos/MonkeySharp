@@ -31,9 +31,8 @@ internal sealed class SymbolTable
         return (Value.NullValue, false);
     }
 
-    public Value Set(string name, Value value)
+    public void Set(string name, Value value)
     {
         _store[name] = value;
-        return value;
     }
 }

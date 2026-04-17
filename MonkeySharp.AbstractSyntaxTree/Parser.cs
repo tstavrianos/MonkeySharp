@@ -345,13 +345,12 @@ internal class Parser
             return null;
         var consequence = ParseBlockStatement();
         BlockStatement? alternative = null;
-        if (PeekTokenIs(TokenType.Else))
-        {
-            NextToken();
-            if (!ExpectPeek(TokenType.LeftBrace))
-                return null;
-            alternative = ParseBlockStatement();
-        }
+        if (!PeekTokenIs(TokenType.Else))
+            return new IfExpression(token, condition, consequence, alternative);
+        NextToken();
+        if (!ExpectPeek(TokenType.LeftBrace))
+            return null;
+        alternative = ParseBlockStatement();
 
         return new IfExpression(token, condition, consequence, alternative);
     }
@@ -413,15 +412,10 @@ internal class Parser
         var precedence = CurPrecedence();
         NextToken();
         var right = ParseExpression(precedence);
-        if (right is null)
-        {
-            _errors.Add(
-                $"Invalid infix expression: expected an expression after '{token.Literal}'."
-            );
-            return null;
-        }
-
-        return new InfixExpression(token, left, token.Literal, right);
+        if (right is not null)
+            return new InfixExpression(token, left, token.Literal, right);
+        _errors.Add($"Invalid infix expression: expected an expression after '{token.Literal}'.");
+        return null;
     }
 
     /// <summary>
@@ -462,13 +456,10 @@ internal class Parser
     /// langword="null"/> if the current token cannot be parsed as an integer.</returns>
     private IntegerLiteral? ParseIntegerLiteral()
     {
-        if (!long.TryParse(_current.Literal, out var value))
-        {
-            _errors.Add($"could not parse {_current.Literal} as integer");
-            return null;
-        }
-
-        return new IntegerLiteral(_current, value);
+        if (long.TryParse(_current.Literal, out var value))
+            return new IntegerLiteral(_current, value);
+        _errors.Add($"could not parse {_current.Literal} as integer");
+        return null;
     }
 
     /// <summary>
@@ -483,15 +474,10 @@ internal class Parser
         var token = _current;
         NextToken();
         var right = ParseExpression(Precedence.Prefix);
-        if (right is null)
-        {
-            _errors.Add(
-                $"Invalid prefix expression: expected an expression after '{token.Literal}'."
-            );
-            return null;
-        }
-
-        return new PrefixExpression(token, token.Literal, right);
+        if (right is not null)
+            return new PrefixExpression(token, token.Literal, right);
+        _errors.Add($"Invalid prefix expression: expected an expression after '{token.Literal}'.");
+        return null;
     }
 
     /// <summary>

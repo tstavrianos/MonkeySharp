@@ -43,7 +43,7 @@ internal static class Code
         { OpCode.TailCall, new Definition("OpTailCall", [1]) },
     };
 
-    public static string? LookUp(OpCode op, out Definition ret)
+    private static string? LookUp(OpCode op, out Definition ret)
     {
         if (!Definitions.TryGetValue(op, out ret))
             return $"opcode {op} undefined";
@@ -85,7 +85,7 @@ internal static class Code
         return instruction;
     }
 
-    public static (int[], int) ReadOperands(Definition def, byte[] instructions)
+    private static (int[], int) ReadOperands(Definition def, byte[] instructions)
     {
         var operands = new int[def.OperandWidths.Length];
         var offset = 0;
@@ -93,15 +93,12 @@ internal static class Code
         for (var i = 0; i < def.OperandWidths.Length; i++)
         {
             var width = def.OperandWidths[i];
-            switch (width)
+            operands[i] = width switch
             {
-                case 2:
-                    operands[i] = BinaryPrimitives.ReadUInt16BigEndian(instructions.AsSpan(offset));
-                    break;
-                case 1:
-                    operands[i] = instructions[offset];
-                    break;
-            }
+                2 => BinaryPrimitives.ReadUInt16BigEndian(instructions.AsSpan(offset)),
+                1 => instructions[offset],
+                _ => operands[i],
+            };
 
             offset += width;
         }

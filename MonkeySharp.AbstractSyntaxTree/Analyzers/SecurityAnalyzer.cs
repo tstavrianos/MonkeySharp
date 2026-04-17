@@ -12,7 +12,7 @@ internal class SecurityAnalyzer
 {
     private class FunctionInfo
     {
-        public required string Name { get; set; }
+        public required string Name { get; init; }
         public bool HasBaseCase { get; set; }
         public bool CallsItself { get; set; }
         public List<string> CallsOthers { get; } = [];
@@ -156,11 +156,8 @@ internal class SecurityAnalyzer
     private void AnalyzeBlockStatement(BlockStatement blockStatement)
     {
         foreach (var statement in blockStatement.Statements)
-        {
             AnalyzeNode(statement);
-
-            // Dead code after return is handled by CodeQualityAnalyzer
-        }
+        // Dead code after return is handled by CodeQualityAnalyzer
     }
 
     private void AnalyzeLetStatement(LetStatement letStatement)
@@ -219,13 +216,11 @@ internal class SecurityAnalyzer
 
         // Warn about unbounded recursion — HasBaseCase is set incrementally during if-branch analysis
         if (_currentFunction != null)
-        {
             if (_currentFunction.CallsItself && !_currentFunction.HasBaseCase)
                 AddWarning(
                     $"Function '{_currentFunction.Name}' contains recursion but no detectable base case. "
                         + "This may lead to infinite recursion and stack overflow."
                 );
-        }
 
         _currentFunction = previousFunction;
         _currentPathCallsItself = previousCallsItself;
@@ -242,7 +237,9 @@ internal class SecurityAnalyzer
                 _currentPathCallsItself = true;
             }
             else if (_functions.ContainsKey(identifier.Value))
+            {
                 _currentFunction.CallsOthers.Add(identifier.Value);
+            }
         }
 
         AnalyzeNode(callExpression.Function);
@@ -255,7 +252,7 @@ internal class SecurityAnalyzer
         // Detect cycles in function call graph that have no base cases
         foreach (var (funcName, funcInfo) in _functions)
         {
-            if (funcInfo.CallsItself && !funcInfo.HasBaseCase)
+            if (funcInfo is { CallsItself: true, HasBaseCase: false })
                 // Already warned about direct recursion
                 continue;
 
@@ -263,14 +260,13 @@ internal class SecurityAnalyzer
             var visited = new HashSet<string>();
             var path = new List<string>();
 
-            if (HasRecursiveCycle(funcName, visited, path) && !AnyHasBaseCase(path))
-            {
-                var cycle = string.Join(" -> ", path);
-                AddWarning(
-                    $"Potential infinite mutual recursion detected: {cycle}. "
-                        + "None of these functions have a detectable base case."
-                );
-            }
+            if (!HasRecursiveCycle(funcName, visited, path) || AnyHasBaseCase(path))
+                continue;
+            var cycle = string.Join(" -> ", path);
+            AddWarning(
+                $"Potential infinite mutual recursion detected: {cycle}. "
+                    + "None of these functions have a detectable base case."
+            );
         }
     }
 

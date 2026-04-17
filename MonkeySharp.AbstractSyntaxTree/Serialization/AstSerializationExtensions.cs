@@ -7,37 +7,38 @@ namespace MonkeySharp.AbstractSyntaxTree.Serialization;
 /// </summary>
 internal static class AstSerializationExtensions
 {
-    /// <summary>
-    /// Serializes the program node to a binary stream.
-    /// </summary>
     /// <param name="program">The program node to serialize.</param>
-    /// <param name="stream">The output stream.</param>
-    public static void SerializeToBinary(this ProgramNode program, Stream stream)
+    extension(ProgramNode program)
     {
-        AstBinarySerializer.Serialize(program, stream);
-    }
+        /// <summary>
+        /// Serializes the program node to a binary stream.
+        /// </summary>
+        /// <param name="stream">The output stream.</param>
+        public void SerializeToBinary(Stream stream)
+        {
+            AstBinarySerializer.Serialize(program, stream);
+        }
 
-    /// <summary>
-    /// Serializes the program node to a byte array.
-    /// </summary>
-    /// <param name="program">The program node to serialize.</param>
-    /// <returns>A byte array containing the serialized AST.</returns>
-    public static byte[] SerializeToBinary(this ProgramNode program)
-    {
-        using var ms = new MemoryStream();
-        AstBinarySerializer.Serialize(program, ms);
-        return ms.ToArray();
-    }
+        /// <summary>
+        /// Serializes the program node to a byte array.
+        /// </summary>
+        /// <returns>A byte array containing the serialized AST.</returns>
+        public byte[] SerializeToBinary()
+        {
+            using var ms = new MemoryStream();
+            AstBinarySerializer.Serialize(program, ms);
+            return ms.ToArray();
+        }
 
-    /// <summary>
-    /// Serializes the program node to a file.
-    /// </summary>
-    /// <param name="program">The program node to serialize.</param>
-    /// <param name="filePath">The file path to write to.</param>
-    public static void SerializeToBinaryFile(this ProgramNode program, string filePath)
-    {
-        using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-        AstBinarySerializer.Serialize(program, fs);
+        /// <summary>
+        /// Serializes the program node to a file.
+        /// </summary>
+        /// <param name="filePath">The file path to write to.</param>
+        public void SerializeToBinaryFile(string filePath)
+        {
+            using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write);
+            AstBinarySerializer.Serialize(program, fs);
+        }
     }
 
     /// <summary>

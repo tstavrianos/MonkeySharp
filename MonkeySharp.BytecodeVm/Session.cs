@@ -103,7 +103,7 @@ public sealed class Session
         return new ExecutionResult(new MonkeyValue(vm.LastPoppedStackElement), error);
     }
 
-    internal BytecodeCompiler CreateCompiler()
+    private BytecodeCompiler CreateCompiler()
     {
         return new BytecodeCompiler(GetBuiltinSignatures());
     }
@@ -126,14 +126,14 @@ public sealed class Session
 
         var signatures = GetBuiltinSignatures().Select(x => (x.name, x.arity));
         var analyzer = new StaticAnalyzer();
-        analyzer.Analyze(program, signatures, runSecurity: runSecurity);
+        analyzer.Analyze(program, signatures, runSecurity);
         return new AnalysisResult(
             new List<string>(analyzer.AllErrors),
             new List<string>(analyzer.AllWarnings)
         );
     }
 
-    internal IReadOnlyList<(string name, int arity)> GetBuiltinSignatures()
+    private IReadOnlyList<(string name, int arity)> GetBuiltinSignatures()
     {
         var signatures = new List<(string name, int arity)>(
             Builtins.Entries.Count + _customBuiltins.Count

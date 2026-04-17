@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MonkeySharp.AbstractSyntaxTree.Expressions;
 using MonkeySharp.AbstractSyntaxTree.Statements;
@@ -197,6 +198,8 @@ internal class DataFlowAnalyzer
             case null:
                 // Variable not in any scope (semantic error, will be caught by SemanticAnalyzer)
                 break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 
@@ -276,7 +279,10 @@ internal class DataFlowAnalyzer
 
         // Variables initialized in the branch are maybe initialized overall
         foreach (var (name, state) in afterBranch)
-            if (!beforeBranch.ContainsKey(name) || beforeBranch[name] != VariableState.Initialized)
+            if (
+                !beforeBranch.TryGetValue(name, out var value)
+                || value != VariableState.Initialized
+            )
                 if (state == VariableState.Initialized)
                     currentScope.Variables[name] = VariableState.MaybeInitialized;
     }

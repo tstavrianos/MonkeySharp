@@ -218,7 +218,7 @@ internal sealed class MonkeyHash : MonkeyObject
 internal sealed class MonkeyFunction : MonkeyObject
 {
     public Delegate CompiledFunction { get; }
-    public string Name { get; }
+    private string Name { get; }
     public int ParameterCount { get; }
 
     public MonkeyFunction(Delegate? compiledFunction, string? name, int parameterCount)

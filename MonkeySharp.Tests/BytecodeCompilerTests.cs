@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using MonkeySharp.AbstractSyntaxTree;
 using MonkeySharp.BytecodeVm;
 using MonkeySharp.BytecodeVm.Objects;
 using NUnit.Framework;

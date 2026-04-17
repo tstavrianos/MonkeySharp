@@ -12,8 +12,11 @@ namespace MonkeySharp.AbstractSyntaxTree.Expressions;
 /// <param name="token">The token associated with this call expression.</param>
 /// <param name="function">The expression representing the function to be called.</param>
 /// <param name="arguments">A read-only list of expressions representing the arguments passed to the function.</param>
-internal sealed class CallExpression(Token token, Expression function, IReadOnlyList<Expression> arguments)
-    : Expression(token)
+internal sealed class CallExpression(
+    Token token,
+    Expression function,
+    IReadOnlyList<Expression> arguments
+) : Expression(token)
 {
     /// <summary>
     /// Gets the type of this expression, which categorizes the expression node.
@@ -41,7 +44,7 @@ internal sealed class CallExpression(Token token, Expression function, IReadOnly
         ret.Append(Function);
         ret.Append('(');
         ret.Append(string.Join(", ", Arguments.Select(x => x.ToString())));
-        ret.Append(")");
+        ret.Append(')');
         return ret.ToString();
     }
 

@@ -89,7 +89,7 @@ internal static class TreeWalker
                 if (function.IsError)
                     return function;
                 var args = EvalExpressions(callExpression.Arguments, symbolTable);
-                if (args.Length == 1 && args[0].IsError)
+                if (args is [{ IsError: true } _])
                     return args[0];
 
                 return ApplyFunction(function, args);
@@ -99,7 +99,7 @@ internal static class TreeWalker
             case ArrayLiteral arrayLiteral:
             {
                 var elements = EvalExpressions(arrayLiteral.Elements, symbolTable);
-                if (elements.Length == 1 && elements[0].IsError)
+                if (elements is [{ IsError: true } _])
                     return elements[0];
                 return Value.Array(elements);
             }
@@ -179,14 +179,14 @@ internal static class TreeWalker
         return elements[(int)idx];
     }
 
-    private static Value ApplyFunction(Value function, IReadOnlyList<Value> args)
+    private static Value ApplyFunction(Value function, Value[] args)
     {
         if (function.IsFunction)
         {
             var functionData = function.FunctionData!;
-            if (functionData.Parameters.Count != args.Count)
+            if (functionData.Parameters.Count != args.Length)
                 return Value.Error(
-                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Count}"
+                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Length}"
                 );
 
             var currentEnv = ExtendFunctionEnv(functionData, args);
@@ -236,14 +236,14 @@ internal static class TreeWalker
         return Value.Error($"not a function: {function.Type}");
     }
 
-    private static Value ApplyFunctionDirect(Value function, IReadOnlyList<Value> args)
+    private static Value ApplyFunctionDirect(Value function, Value[] args)
     {
         if (function.IsFunction)
         {
             var functionData = function.FunctionData!;
-            if (functionData.Parameters.Count != args.Count)
+            if (functionData.Parameters.Count != args.Length)
                 return Value.Error(
-                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Count}"
+                    $"wrong number of arguments. want={functionData.Parameters.Count}, got={args.Length}"
                 );
 
             var extendedEnv = ExtendFunctionEnv(functionData, args);
@@ -286,7 +286,7 @@ internal static class TreeWalker
                         return Value.ReturnValue(function);
 
                     var args = EvalExpressions(callExpression.Arguments, symbolTable);
-                    if (args.Length == 1 && args[0].IsError)
+                    if (args is [{ IsError: true } _])
                         return Value.ReturnValue(args[0]);
 
                     // Check if this is a recursive call to the same function

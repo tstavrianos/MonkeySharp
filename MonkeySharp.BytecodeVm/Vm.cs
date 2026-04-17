@@ -80,7 +80,7 @@ internal sealed class Vm
             {
                 case OpCode.Constant:
                 {
-                    var constIndex = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var constIndex = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
 
                     var err = Push(_constants[constIndex]);
@@ -128,13 +128,13 @@ internal sealed class Vm
                 }
                 case OpCode.Jump:
                 {
-                    var pos = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var pos = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip = pos - 1;
                     break;
                 }
                 case OpCode.JumpNotTruthy:
                 {
-                    var pos = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var pos = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
                     var condition = Pop();
                     if (!condition.IsTruthy())
@@ -150,14 +150,14 @@ internal sealed class Vm
                 }
                 case OpCode.SetGlobal:
                 {
-                    var globalIndex = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var globalIndex = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
                     _globals[globalIndex] = Pop();
                     break;
                 }
                 case OpCode.GetGlobal:
                 {
-                    var globalIndex = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var globalIndex = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
                     var err = Push(_globals[globalIndex]);
                     if (!string.IsNullOrEmpty(err))
@@ -166,10 +166,10 @@ internal sealed class Vm
                 }
                 case OpCode.Array:
                 {
-                    var numElements = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var numElements = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
                     var array = BuildArray(_sp - numElements, _sp);
-                    _sp = _sp - numElements;
+                    _sp -= numElements;
                     var err = Push(array);
                     if (!string.IsNullOrEmpty(err))
                         return err;
@@ -177,12 +177,12 @@ internal sealed class Vm
                 }
                 case OpCode.Hash:
                 {
-                    var numElements = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var numElements = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     currentFrame.Ip += 2;
                     var (hash, err) = BuildHash(_sp - numElements, _sp);
                     if (!string.IsNullOrEmpty(err))
                         return err;
-                    _sp = _sp - numElements;
+                    _sp -= numElements;
                     err = Push(hash);
                     if (!string.IsNullOrEmpty(err))
                         return err;
@@ -235,16 +235,14 @@ internal sealed class Vm
                 {
                     var localIndex = ins[ip + 1];
                     currentFrame.Ip += 1;
-                    var frame = currentFrame;
-                    _stack[frame.BasePointer + localIndex] = Pop();
+                    _stack[currentFrame.BasePointer + localIndex] = Pop();
                     break;
                 }
                 case OpCode.GetLocal:
                 {
                     var localIndex = ins[ip + 1];
                     currentFrame.Ip += 1;
-                    var frame = currentFrame;
-                    var err = Push(_stack[frame.BasePointer + localIndex]);
+                    var err = Push(_stack[currentFrame.BasePointer + localIndex]);
                     if (!string.IsNullOrEmpty(err))
                         return err;
                     break;
@@ -261,7 +259,7 @@ internal sealed class Vm
                 }
                 case OpCode.Closure:
                 {
-                    var constantIndex = BinaryPrimitives.ReadUInt16BigEndian(ins.Slice(ip + 1));
+                    var constantIndex = BinaryPrimitives.ReadUInt16BigEndian(ins[(ip + 1)..]);
                     var numFree = ins[ip + 3];
                     currentFrame.Ip += 3;
                     var err = PushClosure(constantIndex, numFree);
@@ -298,6 +296,8 @@ internal sealed class Vm
                     ins = currentFrame.Instructions().AsSpan();
                     break;
                 }
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
 
@@ -354,7 +354,7 @@ internal sealed class Vm
         var free = new Value[numFree];
         for (var i = 0; i < numFree; i++)
             free[i] = _stack[_sp - (numFree - i)];
-        _sp = _sp - numFree;
+        _sp -= numFree;
         var closure = Value.Closure(constant, free);
         return Push(closure);
     }

@@ -9,7 +9,9 @@ namespace MonkeySharp.Benchmarks;
 [HardwareCounters(BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses)]
 #endif
 [ReturnValueValidator(true)]
+#pragma warning disable CA1515
 public class ComparisonBenchmarks
+#pragma warning restore CA1515
 {
     private const string Input =
         @"
@@ -56,7 +58,9 @@ fibonacci(20);";
 
     [Benchmark(Baseline = true)]
     [BenchmarkCategory(Categories.Native)]
+#pragma warning disable CA1822
     public long BenchmarkNative()
+#pragma warning restore CA1822
     {
         return fibonacci(20);
     }

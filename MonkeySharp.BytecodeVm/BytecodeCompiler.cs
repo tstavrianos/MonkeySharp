@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using MonkeySharp.AbstractSyntaxTree;
@@ -409,6 +410,8 @@ internal sealed class BytecodeCompiler
             case SymbolScope.Function:
                 Emit(OpCode.CurrentClosure);
                 break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
 

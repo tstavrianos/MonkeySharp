@@ -51,14 +51,13 @@ public enum MonkeyValueKind
 /// </summary>
 public readonly struct MonkeyValue : IEquatable<MonkeyValue>
 {
-    private readonly Value _value;
     private readonly bool _hasValue;
 
     // default(MonkeyValue) should behave as NULL at the public boundary.
     private Value RuntimeValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _hasValue ? _value : Value.NullValue;
+        get => _hasValue ? field : Value.NullValue;
     }
 
     /// <summary>
@@ -249,7 +248,7 @@ public readonly struct MonkeyValue : IEquatable<MonkeyValue>
 
     internal MonkeyValue(Value value)
     {
-        _value = value;
+        RuntimeValue = value;
         _hasValue = true;
     }
 

@@ -416,23 +416,16 @@ internal readonly struct Value : IEquatable<Value>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string OpCodeToString(OpCode opCode)
     {
-        switch (opCode)
+        return opCode switch
         {
-            case OpCode.Add:
-                return "+";
-            case OpCode.Subtract:
-                return "-";
-            case OpCode.Divide:
-                return "/";
-            case OpCode.Multiply:
-                return "*";
-            case OpCode.Minus:
-                return "-";
-            case OpCode.Bang:
-                return "!";
-        }
-
-        return opCode.ToString();
+            OpCode.Add => "+",
+            OpCode.Subtract => "-",
+            OpCode.Divide => "/",
+            OpCode.Multiply => "*",
+            OpCode.Minus => "-",
+            OpCode.Bang => "!",
+            _ => opCode.ToString(),
+        };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

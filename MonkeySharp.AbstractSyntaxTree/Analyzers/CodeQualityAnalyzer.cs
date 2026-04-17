@@ -242,12 +242,11 @@ internal class CodeQualityAnalyzer
         var scope = CurrentScope();
         foreach (var (name, info) in scope.Variables)
             if (!info.IsRead)
-            {
-                if (info.IsParameter)
-                    AddWarning($"Parameter '{name}' is never used");
-                else
-                    AddWarning($"Variable '{name}' is assigned but never used");
-            }
+                AddWarning(
+                    info.IsParameter
+                        ? $"Parameter '{name}' is never used"
+                        : $"Variable '{name}' is assigned but never used"
+                );
 
         LeaveScope();
         _afterReturn = previousAfterReturn;

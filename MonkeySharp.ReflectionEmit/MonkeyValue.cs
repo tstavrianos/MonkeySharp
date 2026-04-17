@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
@@ -50,13 +50,11 @@ public enum MonkeyValueKind
 /// </summary>
 public readonly struct MonkeyValue : IEquatable<MonkeyValue>
 {
-    private readonly MonkeyObject _value;
-
     // default(MonkeyValue) has a null backing field; treat it as NULL for parity/safety.
     private MonkeyObject RuntimeValue
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _value ?? MonkeyNull.Instance;
+        get => field ?? MonkeyNull.Instance;
     }
 
     /// <summary>
@@ -66,13 +64,16 @@ public readonly struct MonkeyValue : IEquatable<MonkeyValue>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get =>
-            RuntimeValue is MonkeyInteger ? MonkeyValueKind.Integer
-            : RuntimeValue is MonkeyString ? MonkeyValueKind.String
-            : RuntimeValue is MonkeyBoolean ? MonkeyValueKind.Boolean
-            : RuntimeValue is MonkeyNull ? MonkeyValueKind.Null
-            : RuntimeValue is MonkeyArray ? MonkeyValueKind.Array
-            : RuntimeValue is MonkeyHash ? MonkeyValueKind.Hash
-            : MonkeyValueKind.Error;
+            RuntimeValue switch
+            {
+                MonkeyInteger => MonkeyValueKind.Integer,
+                MonkeyString => MonkeyValueKind.String,
+                MonkeyBoolean => MonkeyValueKind.Boolean,
+                MonkeyNull => MonkeyValueKind.Null,
+                MonkeyArray => MonkeyValueKind.Array,
+                MonkeyHash => MonkeyValueKind.Hash,
+                _ => MonkeyValueKind.Error,
+            };
     }
 
     /// <summary>
@@ -247,7 +248,7 @@ public readonly struct MonkeyValue : IEquatable<MonkeyValue>
 
     internal MonkeyValue(MonkeyObject value)
     {
-        _value = value;
+        RuntimeValue = value;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

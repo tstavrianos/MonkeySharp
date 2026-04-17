@@ -39,7 +39,7 @@ internal sealed class FunctionLiteral(
     /// <summary>
     /// Gets or sets the block statement containing the executable body of the function.
     /// </summary>
-    public BlockStatement Body { get; set; } = body;
+    public BlockStatement Body { get; } = body;
 
     /// <summary>
     /// Returns a string representation of the function literal.

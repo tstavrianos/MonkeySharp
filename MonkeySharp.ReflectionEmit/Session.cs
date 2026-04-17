@@ -74,7 +74,7 @@ public sealed class Session
 
         var compiler = new ReflectionEmitCompiler(adapters);
         var compiled = compiler.Compile(program);
-        return new CompilationResult(compiled, Array.Empty<string>());
+        return new CompilationResult(compiled, []);
     }
 
     /// <summary>
@@ -119,7 +119,7 @@ public sealed class Session
 
         var signatures = GetBuiltinSignaturesForAnalysis();
         var analyzer = new StaticAnalyzer();
-        analyzer.Analyze(program, signatures, runSecurity: runSecurity);
+        analyzer.Analyze(program, signatures, runSecurity);
         return new AnalysisResult(
             new List<string>(analyzer.AllErrors),
             new List<string>(analyzer.AllWarnings)

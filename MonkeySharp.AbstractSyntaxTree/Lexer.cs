@@ -43,10 +43,7 @@ internal class Lexer
     /// </summary>
     private void ReadChar()
     {
-        if (_readPosition >= _input.Length)
-            _ch = NullChar;
-        else
-            _ch = _input[_readPosition];
+        _ch = _readPosition >= _input.Length ? NullChar : _input[_readPosition];
         _position = _readPosition;
         _readPosition += 1;
     }
@@ -137,10 +134,9 @@ internal class Lexer
                 token = NewToken(TokenType.Colon, _ch);
                 break;
             case QuoteChar:
-                if (!TryReadString(out var str))
-                    token = NewToken(TokenType.Illegal, _ch);
-                else
-                    token = new Token(TokenType.String, str);
+                token = !TryReadString(out var str)
+                    ? NewToken(TokenType.Illegal, _ch)
+                    : new Token(TokenType.String, str);
                 break;
             case NullChar:
                 token = new Token(TokenType.EndOfFile, "");
@@ -285,8 +281,6 @@ internal class Lexer
     /// <returns>The next character in the input stream, or a sentinel value if the end of the input has been reached.</returns>
     private char PeekChar()
     {
-        if (_readPosition >= _input.Length)
-            return NullChar;
-        return _input[_readPosition];
+        return _readPosition >= _input.Length ? NullChar : _input[_readPosition];
     }
 }

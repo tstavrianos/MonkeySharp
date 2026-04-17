@@ -13,5 +13,5 @@ internal enum ExpressionType : byte
     Infix = 9,
     Integer = 10,
     Prefix = 11,
-    String = 12
+    String = 12,
 }
